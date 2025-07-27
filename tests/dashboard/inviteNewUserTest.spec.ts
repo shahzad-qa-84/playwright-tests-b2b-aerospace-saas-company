@@ -28,20 +28,20 @@ test.describe("Invite New User test", () => {
     // Verify that user notification is displayed
     await expect(await page.getByText("Users invited successfully")).toBeVisible();
 
-    // // Verify that the email is received
-    // let sender;
-    // let emailSbj = "has invited you to b2bSaas";
-    // if (baseURL?.includes("b2bSaas.b2bSaas.ai")) {
-    //   sender = "login@stytch.com";
-    // } else {
-    //   sender = "login@test.stytch.com";
-    //   emailSbj = "has invited you to b2bSaas";
-    // }
+    // Verify that the email is received
+    let sender;
+    let emailSbj = "has invited you to b2bSaas";
+    if (baseURL?.includes("b2bSaas.b2bSaas.ai")) {
+      sender = "login@stytch.com";
+    } else {
+      sender = "login@test.stytch.com";
+      emailSbj = "has invited you to b2bSaas";
+    }
 
-    // const htmlContent = await mailHelper.readEmail(page, sender, userEmail, emailSbj);
-    // const url = await mailHelper.getLoginLink(htmlContent);
-    // // Verify that URl is not null
-    // await expect(url).not.toBeNull();
+    const htmlContent = await mailHelper.readEmail(page, sender, userEmail, emailSbj);
+    const url = await mailHelper.getLoginLink(htmlContent);
+    // Verify that URl is not null
+    await expect(url).not.toBeNull();
   });
 
   test.afterEach(async ({ page }) => {

@@ -1,38 +1,34 @@
 import { faker } from "@faker-js/faker";
-import { expect, test } from "@playwright/test";
+import { test } from "@playwright/test";
 
 import { homePage } from "../../pageobjects/homePage.po";
+import { DiscussionPage } from "../../pageobjects/discussionPage.po";
 
 test.describe("List style applied properly to comments", () => {
   const workspaceName = "AutomatedTest_" + faker.internet.userName();
   let wsId: string | undefined;
+
   test.beforeEach(async ({ page }) => {
     const b2bSaasHomePage = new homePage(page);
     wsId = await b2bSaasHomePage.openUrlAndCreateTestWorkspace(workspaceName);
   });
+
   test("Verify that List Styles are applied successfully. @prod @smokeTest @featureBranch", async ({ page }) => {
     const b2bSaasHomePage = new homePage(page);
+    const discussionPage = new DiscussionPage(page);
+
     await b2bSaasHomePage.clickDiscussion();
+    await discussionPage.applyStrike();
 
-    // Check Strike, Bold, Italic and Underline functionality
-    await page.getByTestId("button_comment-editor-action_strike").click();
-    const txtBxToAddcomment = await page.locator(".ProseMirror").first();
+    const listItems = ["list 1", "list 2", "list 3"];
+    await discussionPage.addListItems(listItems);
+    await discussionPage.selectAllText();
+    await discussionPage.applyOrderedList();
+    await discussionPage.sendComment();
 
-    // Verify that Ordered list functionality works
-    await txtBxToAddcomment.fill("list 1");
-    await txtBxToAddcomment.press("Enter");
-    await txtBxToAddcomment.fill("list 1\n\nlist 2");
-    await txtBxToAddcomment.press("Enter");
-    await page.getByText("list 1list 2").fill("list 1\n\nlist 2\n\nlist 3");
-    await page.getByText("list 1list 2").press("Enter");
-    await page.getByText("list 1list 2list 3").press("Meta+a");
-    await page.getByTestId("button_comment-editor-action_orderedlist").click();
-    const sendComment = await page.getByTestId("button_comment-editor-send");
-    await sendComment.click();
-
-    // Verify that added text is available
-    await expect(await page.getByText("list 1")).toBeVisible();
+    await discussionPage.expectTextVisible("list 1");
   });
+
   test.afterEach(async ({ page }) => {
     const b2bSaasHomePage = new homePage(page);
     if (wsId) {

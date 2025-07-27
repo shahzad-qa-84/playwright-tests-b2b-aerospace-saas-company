@@ -3,52 +3,63 @@ import { expect, test } from "@playwright/test";
 
 import { attachmentsPage } from "../../pageobjects/attachmentPage.po";
 import { homePage } from "../../pageobjects/homePage.po";
+
 const attachmentName = "flower.png";
-test.describe("Attachment Tests with image upload and Thumbnail check", () => {
+const attachmentSize = "515.7 kB";
+
+test.describe("Attachment Tests with image upload and thumbnail check", () => {
   const workspaceName = "AutomatedTest_" + faker.internet.userName();
   let wsId: string | undefined;
+
+  // Create a workspace before each test
   test.beforeEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
-    wsId = await b2bSaasHomePage.openUrlAndCreateTestWorkspace(workspaceName);
+    const home = new homePage(page);
+    wsId = await home.openUrlAndCreateTestWorkspace(workspaceName);
   });
-  test("Upload Successful Attachment of PNG file and verify thumbnail works @prod @smokeTest @featureBranch", async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
-    await b2bSaasHomePage.clickAttachments();
 
-    const attachmentPage = new attachmentsPage(page);
-    await attachmentPage.uploadAttachment(attachmentName);
+  test("Upload PNG attachment and verify thumbnail + metadata @prod @smokeTest @featureBranch", async ({ page }) => {
+    const home = new homePage(page);
+    const attachment = new attachmentsPage(page);
 
-    await expect(await page.getByText(attachmentName).first()).toBeVisible();
-    await expect(await page.getByRole("cell", { name: "" + attachmentName + "" }).first()).toBeVisible();
+    // Step 1: Open attachment section and upload image
+    await home.clickAttachments();
+    await attachment.uploadAttachment(attachmentName);
 
-    // Click Grid view
-    await b2bSaasHomePage.clickGridView();
+    // Step 2: Verify attachment is listed
+    await expect(page.getByText(attachmentName).first()).toBeVisible();
+    await expect(page.getByRole("cell", { name: attachmentName }).first()).toBeVisible();
 
-    // Verify thumbnail is displayed
-    await expect(await page.getByRole("img", { name: "thumbnail" })).toBeVisible();
+    // Step 3: Switch to Grid view and verify thumbnail is shown
+    await home.clickGridView();
+    await expect(page.getByRole("img", { name: "thumbnail" })).toBeVisible();
 
-    // Verify the details of the image
-    const contextMenu = await page.getByTestId("button_more-options_attachment-context-menu");
-    await contextMenu.click();
-    const menuDetails = await page.getByTestId("menu-item_details");
-    await menuDetails.click();
-    await page.getByLabel("Attachment details: flower.png").getByRole("img").first().click();
-    await expect(await page.getByLabel("Attachment details: flower.png").getByText("flower.png", { exact: true })).toBeVisible();
-    await expect(await page.getByText("image/png")).toBeVisible();
-    await expect(await page.getByLabel("Attachment details: flower.png").getByText("515.7 kB")).toBeVisible();
+    // Step 4: Open context menu and view attachment details
+    await page.getByTestId("button_more-options_attachment-context-menu").click();
+    await page.getByTestId("menu-item_details").click();
+
+    const detailsPanel = page.getByLabel(`Attachment details: ${attachmentName}`);
+
+    // Step 5: Verify image preview and metadata
+    await detailsPanel.getByRole("img").first().click();
+    await expect(detailsPanel.getByText(attachmentName, { exact: true })).toBeVisible();
+    await expect(page.getByText("image/png")).toBeVisible();
+    await expect(detailsPanel.getByText(attachmentSize)).toBeVisible();
+
+    // Step 6: Close details panel and verify it’s hidden
     await page.keyboard.press("Escape");
-    await expect(await page.getByLabel("Attachment details: flower.png").getByText("515.7 kB")).toBeHidden();
+    await expect(detailsPanel.getByText(attachmentSize)).toBeHidden();
 
-    // Button view block is not displayed
-    await contextMenu.click();
-    await menuDetails.click();
+    // Step 7: Verify "View block" is not shown
+    await page.getByTestId("button_more-options_attachment-context-menu").click();
+    await page.getByTestId("menu-item_details").click();
     await expect(page.getByText("View block")).toBeHidden();
   });
 
+  // Clean up: delete workspace
   test.afterEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
+    const home = new homePage(page);
     if (wsId) {
-      await b2bSaasHomePage.deleteWorkspaceByID(wsId);
+      await home.deleteWorkspaceByID(wsId);
     }
   });
 });

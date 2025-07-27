@@ -496,4 +496,5 @@ export class homePage {
       await previousPage.bringToFront();
     }
   }
+  
 }

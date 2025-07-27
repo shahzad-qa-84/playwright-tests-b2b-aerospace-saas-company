@@ -3,70 +3,66 @@ import { expect, test } from "@playwright/test";
 
 import { homePage } from "../../pageobjects/homePage.po";
 import { importPage } from "../../pageobjects/import.po";
-test.describe.serial("CSV Import", () => {
+
+test.describe.serial("CSV Import Test with Dry Run and Filtering", () => {
   const workspaceName = "AutomatedTest_" + faker.internet.userName();
   let wsId: string | undefined;
+
   test.beforeEach(async ({ page }) => {
+    // Create a test workspace before each test
     const b2bSaasHomePage = new homePage(page);
     wsId = await b2bSaasHomePage.openUrlAndCreateTestWorkspace(workspaceName);
   });
 
-  test("CSV Import with Dry run, and Filtering is working. @smokeTest @featureBranch @prod", async ({ page }) => {
+  test("CSV import with dry run, confirmation and filtering works as expected. @smokeTest @featureBranch @prod", async ({ page }) => {
     const b2bSaasHomePage = new homePage(page);
+    const importsPage = new importPage(page);
+
+    // Navigate to the Imports section
     await b2bSaasHomePage.clickImports();
 
-    // start imports process
-    const importsPage = new importPage(page);
+    // Start the CSV import flow
     await importsPage.clickCreateImport();
-
-    // click 'Import to Model blocks' option
     await importsPage.clickImporttoModelBlocks();
     await importsPage.clickNext();
 
-    // Upload Csv
+    // Upload the CSV file
     await importsPage.uploadImportFile("./resources/importFile.csv");
     await importsPage.clickNext();
 
-    // Select the "System"
-    await page.getByPlaceholder("Select here").waitFor({ state: "visible" });
-    await page.getByPlaceholder("Select here").click();
-    await page.getByTestId("menu-item_autocomplete-item").click();
+    // Select a system from the dropdown
+    await importsPage.selectFirstSystem();
     await importsPage.clickNext();
-    await page.getByRole("button", { name: "Submit" }).click();
 
-    // Wait for "loading" spinner to disapper and success message is displayed
-    await page.waitForSelector(".bp5-spinner-head", {
-      state: "hidden",
-      timeout: 150000,
-    });
+    // Submit the dry run
+    await importsPage.submitImport();
 
-    // Accept the import
-    await page.getByTestId("button_confirm-import").click();
-    await page.getByTestId("button_confirm").click();
-    await page.getByPlaceholder("Search for the imports").fill("abc_random_str");
-    await page.getByTestId("button_clear-search").click();
-    await page.getByPlaceholder("Search for the imports").fill("importFile.csv");
+    // Wait until dry run processing is finished
+    await importsPage.waitForDryRunToFinish();
 
-    // Verify the import row is added properly
-    await expect(await page.getByText("Success", { exact: true })).toBeVisible();
+    // Confirm and accept the import
+    await importsPage.confirmImport();
 
-    // Search for any invalid string
-    const btnSearchImport = await page.getByPlaceholder("Search for the imports");
-    await btnSearchImport.click();
-    await btnSearchImport.fill("abc_random_str");
-    await expect(await page.getByText("No file names matching search query")).toBeVisible();
+    // Filter imports list using correct and incorrect file names
+    await importsPage.searchImportFile("abc_random_str");
+    await expect(page.getByText("No file names matching search query")).toBeVisible();
 
-    // Clear search and verify search is cleared
-    const btnClearSearch = await page.getByTestId("button_clear-search");
-    await btnClearSearch.click();
-    await expect(await page.getByText("No file names matching search query")).toBeHidden();
+    // Clear the incorrect search
+    await importsPage.clearSearch();
+    await expect(page.getByText("No file names matching search query")).toBeHidden();
 
-    // Search for the file
-    await btnSearchImport.click();
-    await btnSearchImport.fill("importFile.csv");
-    await expect(await page.locator("td").first()).toBeVisible();
+    // Search with the correct file name
+    await importsPage.searchImportFile("importFile.csv");
+
+    // Validate that the import row appears with status "Success"
+    await expect(page.getByText("Success", { exact: true })).toBeVisible();
+
+    // Ensure that the file is listed after successful import
+    await expect(page.locator("td").first()).toBeVisible();
   });
+
   test.afterEach(async ({ page }) => {
+    // Clean up: delete the test workspace
     const b2bSaasHomePage = new homePage(page);
     if (wsId) {
       await b2bSaasHomePage.deleteWorkspaceByID(wsId);

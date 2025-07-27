@@ -15,23 +15,20 @@ export class importPage {
     this.txtDepartment = this.page.locator(".user-details-area label:nth-child(2) input");
   }
 
-  async clickCreateImport() {
-    await this.page.getByTestId("button_create-import").click();
-  }
-
-  async clickImporttoModelBlocks() {
-    await this.page.getByText("Import to Model Blocks").click();
-  }
-
   async uncheckDryRun() {
     await this.page.locator("label").filter({ hasText: "Dry run" }).locator("span").click();
   }
 
-  async clickNext() {
-    await this.page.getByRole("button", { name: "Next" }).click();
+  async clickImportToModelBlocks() {
+    await this.page.getByText("Import to Model blocks", { exact: true }).click();
   }
 
-  async uploadImportFile(path: string) {
-    await this.page.getByLabel("Create import").getByRole("textbox").setInputFiles(path);
+  async searchImportFile(filename: string) {
+    const searchBox = this.page.getByPlaceholder("Search for the imports");
+    await searchBox.fill(filename);
+  }
+
+  async clearSearch() {
+    await this.page.getByTestId("button_clear-search").click();
   }
 }

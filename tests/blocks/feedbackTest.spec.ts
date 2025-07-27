@@ -31,21 +31,6 @@ test.describe("Feedback Tests", () => {
     await txtBxBody.click();
     await txtBxBody.fill("I am test only");
     await expect(await page.getByRole("button", { name: "Submit" })).toBeEnabled();
-
-    // // Perform actions on "Feedback & Request" Tab
-    // await page.getByTestId("button_feedback-dialog_question").click();
-    // await page.getByPlaceholder("How do I …?").click();
-    // await page.getByPlaceholder("How do I …?").fill("I am test only. How to contact sales team?");
-    // await page.getByTestId("button_feedback-dialog_feedback-&-request").click();
-    // await page.getByPlaceholder("New feature").click();
-    // await page.getByPlaceholder("New feature").fill("test subject - test feedback");
-    // await page.getByTestId("button_feedback-dialog_submit").click();
-    // await expect(
-    //   await page
-    //     .locator("div")
-    //     .filter({ hasText: /^New SystemAdd part number$/ })
-    //     .first()
-    // ).toBeEnabled();
   });
   test.afterEach(async ({ page }) => {
     const b2bSaasHomePage = new homePage(page);
