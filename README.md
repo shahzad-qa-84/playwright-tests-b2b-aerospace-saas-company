@@ -1,1 +1,1 @@
-# playwright-tests-b2b-saas
+All data and URLs in this repository have been fuzzed to prevent exposure of real information.
