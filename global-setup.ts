@@ -6,7 +6,6 @@ const STAGING_USER_EMAIL = "testing@b2bSaas.ai";
 const PROD_USER_EMAIL = "testing+prod@b2bSaas.ai";
 const VERCEL_USER_EMAIL = "testing+features@b2bSaas.ai";
 const ORG_SLUG = "b2bSaas-testing";
-const USER_PASSWORD = "HxUejF72*2Pwfrc";
 const STORAGE_STATE_PATH = "storageState.json";
 
 enum TargetEnv {
