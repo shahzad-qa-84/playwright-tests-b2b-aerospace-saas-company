@@ -1,23 +1,24 @@
 import { faker } from "@faker-js/faker";
 import { test, expect } from "@playwright/test";
 
-import { homePage } from "../../pageobjects/homePage.po";
-import { DiscussionPage } from "../../pageobjects/discussionPage.po";
+import { HomePage } from "../../pageobjects/homePageRefactored.po";
+import { DiscussionPage } from "../../pageobjects/discussionRefactored.po";
 
 test.describe("Link attachment to Discussion/Comments section", () => {
   const workspaceName = "AutomatedTest_" + faker.internet.userName();
   let wsId: string | undefined;
 
   test.beforeEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
-    wsId = await b2bSaasHomePage.openUrlAndCreateTestWorkspace(workspaceName);
+    const homePage = new HomePage(page);
+    wsId = await homePage.openUrlAndCreateTestWorkspace(workspaceName);
   });
 
   test("Attachment of link to a comment works as expected. @prod @smokeTest @featureBranch", async ({ page, context }) => {
-    const b2bSaasHomePage = new homePage(page);
+    const homePage = new HomePage(page);
     const discussionPage = new DiscussionPage(page);
 
-    await b2bSaasHomePage.clickDiscussion();
+    // Navigate to discussion section
+    await homePage.clickDiscussion();
 
     const linkText = "b2bSaas-link";
     const linkURL = "https://app.b2bSaas.ai";
@@ -40,15 +41,17 @@ test.describe("Link attachment to Discussion/Comments section", () => {
     await newTab.waitForLoadState();
     expect(newTab.url()).toBe(linkURL);
 
-    // Optional: close the tab and return to main page
+    // Close the tab and return to main page
     await newTab.close();
     await page.bringToFront();
   });
 
   test.afterEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
+    // Note: Using original homePage for cleanup until deleteWorkspaceByID is added to refactored version
+    const { homePage: originalHomePage } = await import("../../pageobjects/homePage.po");
+    const cleanupHomePage = new originalHomePage(page);
     if (wsId) {
-      await b2bSaasHomePage.deleteWorkspaceByID(wsId);
+      await cleanupHomePage.deleteWorkspaceByID(wsId);
     }
   });
 });

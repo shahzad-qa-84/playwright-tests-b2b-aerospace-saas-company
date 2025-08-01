@@ -2,19 +2,19 @@ import { faker } from "@faker-js/faker";
 import { expect, test } from "@playwright/test";
 
 import { attachmentsPage } from "../../pageobjects/attachmentPage.po";
-import { homePage } from "../../pageobjects/homePage.po";
+import { HomePage } from "../../pageobjects/homePageRefactored.po";
 const attachmentName = "CATIA-BROKEN.CATPart";
 test.describe.serial("CATPart Upload Broken File Upload @prod @smokeTest", () => {
   const workspaceName = "AutomatedTest_" + faker.internet.userName();
   let wsId: string | undefined;
   test.beforeEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
-    wsId = await b2bSaasHomePage.openUrlAndCreateTestWorkspace(workspaceName);
+    const homePage = new HomePage(page);
+    wsId = await homePage.openUrlAndCreateTestWorkspace(workspaceName);
   });
 
   test("Upload Broken CAT file Attachment", async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
-    await b2bSaasHomePage.clickAttachments();
+    const homePage = new HomePage(page);
+    await homePage.clickAttachments();
 
     // Attach file
     const attachmentPage = new attachmentsPage(page);
@@ -34,9 +34,11 @@ test.describe.serial("CATPart Upload Broken File Upload @prod @smokeTest", () =>
     await expect(await page.getByRole("cell", { name: "" + attachmentName + "" })).toBeHidden();
   });
   test.afterEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
+    // Note: Using original homePage for cleanup until deleteWorkspaceByID is added to refactored version
+    const { homePage: originalHomePage } = await import("../../pageobjects/homePage.po");
+    const cleanupHomePage = new originalHomePage(page);
     if (wsId) {
-      await b2bSaasHomePage.deleteWorkspaceByID(wsId);
+      await cleanupHomePage.deleteWorkspaceByID(wsId);
     }
   });
 });

@@ -1,73 +1,60 @@
 import { faker } from "@faker-js/faker";
 import { expect, test } from "@playwright/test";
 
-import { homePage } from "../../pageobjects/homePage.po";
-import { propertyPage } from "../../pageobjects/property.po";
+import { HomePage } from "../../pageobjects/homePageRefactored.po";
+import { PropertyPage } from "../../pageobjects/propertyRefactored.po";
 
 test.describe("Properties Tests", () => {
   const workspaceName = "AutomatedTest_" + faker.internet.userName();
   let wsId: string | undefined;
   test.beforeEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
-    wsId = await b2bSaasHomePage.openUrlAndCreateTestWorkspace(workspaceName, "engineering");
+    const homePage = new HomePage(page);
+    wsId = await homePage.openUrlAndCreateEngineeringWorkspace(workspaceName);
   });
   test("Verify Property hints and messages on Activity timeline are displaying properly @smokeTest @featureBranch", async ({ page }) => {
-    const property = new propertyPage(page);
+    const propertyPage = new PropertyPage(page);
 
-    // Type Volume in the search box and verify if its added properly
+    // Create property and add volume formula
     const propertyName = "Property_" + faker.person.firstName();
-    await property.addPropertyOrGroupLink();
-    await property.addNewPropertyFromBlockSection(propertyName);
-    await property.addPropertyValue(propertyName, "{{vol");
-    await page.getByText("{{vol").click();
-    await page.getByTestId("menu-item_volume").click();
+    await propertyPage.addPropertyOrGroupLink();
+    await propertyPage.addNewPropertyFromBlockSection(propertyName);
+    await propertyPage.addPropertyValueWithFormula(propertyName, "{{vol");
 
-    // Verify if hints are displayed properly
-    await expect(await page.getByText("Evaluated Equation")).toBeVisible();
-    await expect(await page.getByText("{{/Parent/Child:property}}")).toBeVisible();
-    await page
-      .locator("div")
-      .filter({ hasText: /^Evaluated Equation$/ })
-      .first()
-      .click();
-    await page.getByText("0 m^3").click();
-    await expect(
-      await page
-        .locator("div")
-        .filter({ hasText: /^References$/ })
-        .first()
-    ).toBeVisible();
+    // Select volume from formula menu
+    await propertyPage.selectVolumeFromMenu();
 
-    // verify if activity log is displayed properly
+    // Verify property hints are displayed properly
+    await propertyPage.verifyPropertyHints();
+
+    // Click on evaluated equation and verify references
+    await propertyPage.clickEvaluatedEquation();
+    await propertyPage.verifyReferencesSection();
+
+    // Add comment to activity timeline
     const messageActivityTimeLine = "This is a test message for proprty with name " + propertyName;
-    await page.getByTestId("button_open-comments-popover").first().click();
-    const commentEditor = await page.getByTestId("editor-content_simple-comment-editor");
-    await commentEditor.getByRole("paragraph").click();
-    await commentEditor.fill(messageActivityTimeLine);
-    await page.getByTestId("button_simple-comment-editor-send").click();
-    await page
-      .getByTestId("expandMenuDiv_" + propertyName)
-      .getByTestId("button_block-property-list-item_more")
-      .click();
-    await page.getByTestId("menu-item_property-details").click();
+    await propertyPage.openCommentsPopover();
+    await propertyPage.addCommentToActivityTimeline(messageActivityTimeLine);
 
-    // Verify if activity log is displayed properly
-    const addedComment = page.getByTestId("editor-content_simple-comment-editor").getByText("This is a test message for");
-    await expect(await page.locator("span").filter({ hasText: "You commented just now" }).locator("span").nth(4)).toBeVisible();
+    // Open property details
+    await propertyPage.openPropertyDetails(propertyName);
 
-    // Hover on property and verify if comment is displayed
-    await page.getByPlaceholder("Name").first().hover();
-    await expect(addedComment).toBeVisible();
+    // Verify activity log is displayed properly
+    await propertyPage.verifyActivityLogComment();
 
-    // Close the comment and verify if its closed
-    await page.getByTestId("button_close").click();
-    await expect(addedComment).toBeHidden();
+    // Hover on property and verify comment is displayed
+    await propertyPage.hoverOnPropertyName();
+    await propertyPage.verifyCommentVisible();
+
+    // Close the comment and verify it's hidden
+    await propertyPage.closeCommentsAndVerify();
   });
 
   test.afterEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
+    // Note: Using original homePage for cleanup until deleteWorkspaceByID is added to refactored version
+    const { homePage: originalHomePage } = await import("../../pageobjects/homePage.po");
+    const cleanupHomePage = new originalHomePage(page);
     if (wsId) {
-      await b2bSaasHomePage.deleteWorkspaceByID(wsId);
+      await cleanupHomePage.deleteWorkspaceByID(wsId);
     }
   });
 });

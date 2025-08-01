@@ -1,8 +1,8 @@
 import { faker } from "@faker-js/faker";
 import { test } from "@playwright/test";
 
-import { homePage } from "../../pageobjects/homePage.po";
-import { TemplateManagerPage } from "../../pageobjects/templateManagerPage.po";
+import { HomePage } from "../../pageobjects/homePageRefactored.po";
+import { TemplateManagerPage } from "../../pageobjects/templateManagerRefactored.po";
 
 test.describe("Add/Remove Components to Favourites Test", () => {
   const workspaceName = "AutomatedTest_" + faker.internet.userName();
@@ -10,48 +10,50 @@ test.describe("Add/Remove Components to Favourites Test", () => {
 
   // Create a new workspace before each test
   test.beforeEach(async ({ page }) => {
-    const home = new homePage(page);
-    wsId = await home.openUrlAndCreateTestWorkspace(workspaceName);
+    const homePage = new HomePage(page);
+    wsId = await homePage.openUrlAndCreateTestWorkspace(workspaceName);
   });
 
   test("Verify that adding/removing template to/from Favourites works. @featureBranch @prod @smokeTest", async ({ page }) => {
-    const home = new homePage(page);
+    const homePage = new HomePage(page);
     const templatePage = new TemplateManagerPage(page);
 
     const originalTemplateName = "Project Status Update";
     const copiedTemplateName = "Copy of Project Status Update";
     const templateId = "copy-of-project-status-update"; // used for testIDs
 
-    // Step 1: Navigate to the Knowledgebase
-    await home.clickKnowledgebase();
+    // Navigate to the Knowledgebase
+    await homePage.clickKnowledgebase();
 
-    // Step 2: Open the template menu and select a predefined template
+    // Select and use template
     await templatePage.openTemplateList();
     await templatePage.selectTemplateByName(originalTemplateName);
     await templatePage.useSelectedTemplate();
 
-    // Step 3: Verify that the template is opened and displayed correctly
+    // Verify template is loaded correctly
     await templatePage.verifyTemplateLoaded(copiedTemplateName);
 
-    // Step 4: Mark the opened template as a favorite
+    // Add template to favorites
     await templatePage.addTemplateToFavorites(copiedTemplateName);
 
-    // Step 5: Navigate to Favorites tab and confirm the template is listed
+    // Verify template appears in favorites
     await templatePage.openFavoritesTab();
     await templatePage.verifyTemplateInFavorites(templateId);
 
-    // Step 6: Remove the template from Favorites
+    // Remove template from favorites
     await templatePage.removeTemplateFromFavorites(templateId);
 
-    // Step 7: Confirm Favorites list is empty again
+    // Verify favorites is empty again
     await templatePage.verifyFavoritesEmpty();
   });
 
   // Clean up: Delete the test workspace after each run
   test.afterEach(async ({ page }) => {
-    const home = new homePage(page);
+    // Note: Using original homePage for cleanup until deleteWorkspaceByID is added to refactored version
+    const { homePage: originalHomePage } = await import("../../pageobjects/homePage.po");
+    const cleanupHomePage = new originalHomePage(page);
     if (wsId) {
-      await home.deleteWorkspaceByID(wsId);
+      await cleanupHomePage.deleteWorkspaceByID(wsId);
     }
   });
 });

@@ -2,7 +2,7 @@ import { faker } from "@faker-js/faker";
 import { expect, test } from "@playwright/test";
 
 import { attachmentsPage } from "../../pageobjects/attachmentPage.po";
-import { homePage } from "../../pageobjects/homePage.po";
+import { HomePage } from "../../pageobjects/homePageRefactored.po";
 
 const attachmentName = "INV-CZE-11701-14275-7.pdf";
 
@@ -12,16 +12,16 @@ test.describe("Attachment Tests", () => {
 
   // Setup: Create a new workspace before each test
   test.beforeEach(async ({ page }) => {
-    const home = new homePage(page);
-    wsId = await home.openUrlAndCreateTestWorkspace(workspaceName);
+    const homePage = new HomePage(page);
+    wsId = await homePage.openUrlAndCreateTestWorkspace(workspaceName);
   });
 
   test("Upload and verify PDF attachment @prod @smokeTest @featureBranch", async ({ page }) => {
-    const home = new homePage(page);
+    const homePage = new HomePage(page);
     const attachment = new attachmentsPage(page);
 
     // Step 1: Navigate to the Attachments section
-    await home.clickAttachments();
+    await homePage.clickAttachments();
 
     // Step 2: Upload the attachment
     await attachment.uploadAttachment(attachmentName);
@@ -31,15 +31,12 @@ test.describe("Attachment Tests", () => {
     await expect(page.getByRole("cell", { name: attachmentName }).first()).toBeVisible();
 
     // Step 4: Open attachment details and verify preview & download options
-    await page.getByTestId("button_attachment-context-menu").click();
-    await page.getByTestId("menu-item_details").click();
-
-    await expect(page.getByRole("img", { name: "Preview Image" })).toBeVisible();
-    await expect(page.getByTestId("button_download")).toBeVisible();
-    await expect(page.getByText("View block")).toBeHidden();
+    await homePage.openAttachmentContextMenuForDetails();
+    await homePage.clickAttachmentDetailsFromMenu();
+    await homePage.verifyPdfAttachmentDetails();
 
     // Step 5: Close the detail view
-    await page.keyboard.press("Escape");
+    await homePage.closeAttachmentDetails();
 
     // Step 6: Delete the attachment and confirm removal
     await attachment.deleteAttachment(attachmentName);
@@ -48,9 +45,11 @@ test.describe("Attachment Tests", () => {
 
   // Cleanup: Delete workspace after each test
   test.afterEach(async ({ page }) => {
-    const home = new homePage(page);
+    // Note: Using original homePage for cleanup until deleteWorkspaceByID is added to refactored version
+    const { homePage: originalHomePage } = await import("../../pageobjects/homePage.po");
+    const cleanupHomePage = new originalHomePage(page);
     if (wsId) {
-      await home.deleteWorkspaceByID(wsId);
+      await cleanupHomePage.deleteWorkspaceByID(wsId);
     }
   });
 });

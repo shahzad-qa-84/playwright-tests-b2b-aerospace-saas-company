@@ -1,79 +1,77 @@
 import { faker } from "@faker-js/faker";
 import { expect, test } from "@playwright/test";
 
-import { homePage } from "../../pageobjects/homePage.po";
-import { propertyPage } from "../../pageobjects/property.po";
+import { HomePage } from "../../pageobjects/homePageRefactored.po";
+import { PropertyPage } from "../../pageobjects/propertyRefactored.po";
 
 test.describe("Formula Validation Tests", () => {
   const workspaceName = "AutomatedTest_" + faker.internet.userName();
   let wsId: string | undefined;
+  
   test.beforeEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
-    wsId = await b2bSaasHomePage.openUrlAndCreateTestWorkspace(workspaceName);
+    const homePage = new HomePage(page);
+    wsId = await homePage.openUrlAndCreateTestWorkspace(workspaceName);
   });
+  
   test("Formula validation Plus works expected @featureBranch @smokeTest", async ({ page }) => {
-    // Failed Case-1 (Plus)
-    // Add property 1 and assign value "2" without unit
-    const property = new propertyPage(page);
+    const propertyPage = new PropertyPage(page);
+
+    // Failed Case-1: Create property without unit and property with unit
     const propertyName1 = "Prop_without_Unit";
-    await property.addPropertyOrGroupLink();
-    await property.addNewPropertyFromBlockSection(propertyName1);
-    const propertyValue = "3";
-    await property.addPropertyValue(propertyName1, propertyValue);
-    // Add property 2 and assign value "6"
+    await propertyPage.addPropertyOrGroupLink();
+    await propertyPage.addNewPropertyFromBlockSection(propertyName1);
+    await propertyPage.addPropertyValue(propertyName1, "3");
+
     const propertyName2 = "Prop_with_Unit";
-    await property.addNewPropertyFromBlockSection(propertyName2);
-    const propertyValue2 = "6 kg";
-    await property.addPropertyValue(propertyName2, propertyValue2);
+    await propertyPage.createPropertyWithValue(propertyName2, "6 kg");
+
+    // Create formula property and verify error for unit mismatch
     const propertyName3 = "Result";
-    await property.addNewPropertyFromBlockSection(propertyName3);
-    const propertyValue3 = "{{" + propertyName1 + "}}+{{" + propertyName2 + "}}";
-    await property.addPropertyValue(propertyName3, propertyValue3);
-    // Verify error message is displayed
-    const errorMessage = await page.getByTestId("icon_expression-warning").locator("svg");
-    await expect(errorMessage).toBeVisible();
+    const formula = `{{${propertyName1}}}+{{${propertyName2}}}`;
+    await propertyPage.createFormulaProperty(propertyName3, formula);
+    await propertyPage.verifyFormulaError();
 
-    // Failed Case-2 (Plus with differnt Units)
-    await property.addPropertyValue(propertyName1, "2 m");
-    await expect(errorMessage).toBeVisible();
+    // Failed Case-2: Different units should still show error
+    await propertyPage.addPropertyValue(propertyName1, "2 m");
+    await propertyPage.verifyFormulaError();
 
-    // Success case 3 (Plus with same Units)
-    await property.addPropertyValue(propertyName1, "2 kg");
+    // Success Case-3: Same units should work
+    await propertyPage.addPropertyValue(propertyName1, "2 kg");
     const property4 = "Props_extra";
-    await property.addNewPropertyFromBlockSection(property4);
-    // Verify error message is not displayed
-    await expect(errorMessage).toBeHidden();
-    await expect(await page.getByText("8 kg")).toBeVisible();
+    await propertyPage.addNewPropertyFromBlockSection(property4);
+    await propertyPage.verifyNoFormulaError();
+    await propertyPage.verifyFormulaResult("8 kg");
 
-    // Multiplication Case-1
-    // Add property 1 for multiplication case
-    const mutlipropertyName1 = "Multi_Prop_without_Unit";
-    await property.addNewPropertyFromBlockSection(mutlipropertyName1);
-    await property.addPropertyValue(mutlipropertyName1, "9 kg");
-    //Add property 2 for multiplication case
-    const multipropertyName2 = "Multi_Prop_with_Unit";
-    await property.addNewPropertyFromBlockSection(multipropertyName2);
-    await property.addPropertyValue(multipropertyName2, "2");
-    const multipropertyName3 = "Multi_Result";
-    await property.addNewPropertyFromBlockSection(multipropertyName3);
-    const multipropertyValue3 = "{{" + mutlipropertyName1 + "}} * {{" + multipropertyName2 + "}}";
-    await property.addPropertyValue(multipropertyName3, multipropertyValue3);
-    // Verify error message is not displayed
-    await expect(errorMessage).toBeHidden();
-    await expect(await page.getByText("18 kg").first()).toBeVisible();
+    // Multiplication Case-1: Create multiplication formula
+    const multiPropertyName1 = "Multi_Prop_without_Unit";
+    await propertyPage.createPropertyWithValue(multiPropertyName1, "9 kg");
+    
+    const multiPropertyName2 = "Multi_Prop_with_Unit";
+    await propertyPage.createPropertyWithValue(multiPropertyName2, "2");
+    
+    const multiPropertyName3 = "Multi_Result";
+    const multiFormula = `{{${multiPropertyName1}}} * {{${multiPropertyName2}}}`;
+    await propertyPage.createFormulaProperty(multiPropertyName3, multiFormula);
+    
+    // Verify multiplication result
+    await propertyPage.verifyNoFormulaError();
+    await propertyPage.verifyFormulaResult("18 kg");
 
-    // Multiplication Case-2
-    await property.addPropertyValue(multipropertyName2, "2 m");
-    await expect(await page.getByText("18 kg m")).toBeVisible();
+    // Multiplication Case-2: With different unit
+    await propertyPage.addPropertyValue(multiPropertyName2, "2 m");
+    await propertyPage.verifyFormulaResult("18 kg m");
 
-    // Multiplication Case-3
-    await property.addPropertyValue(multipropertyName2, "3 kg");
-    await expect(await page.getByText("27 kg^2")).toBeVisible();
+    // Multiplication Case-3: With same unit (squared result)
+    await propertyPage.addPropertyValue(multiPropertyName2, "3 kg");
+    await propertyPage.verifyFormulaResult("27 kg^2");
   });
+  
   test.afterEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
+    // Note: Using original homePage for cleanup until deleteWorkspaceByID is added to refactored version
+    const { homePage: originalHomePage } = await import("../../pageobjects/homePage.po");
+    const cleanupHomePage = new originalHomePage(page);
     if (wsId) {
-      await b2bSaasHomePage.deleteWorkspaceByID(wsId);
+      await cleanupHomePage.deleteWorkspaceByID(wsId);
     }
   });
 });

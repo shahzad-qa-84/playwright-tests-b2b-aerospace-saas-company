@@ -1,41 +1,41 @@
 import { faker } from "@faker-js/faker";
 import { expect, test } from "@playwright/test";
 
-import { homePage } from "../../pageobjects/homePage.po";
+import { HomePage } from "../../pageobjects/homePageRefactored.po";
 
 test.describe("Feedback Tests", () => {
   const workspaceName = "AutomatedTest_" + faker.internet.userName();
   let wsId: string | undefined;
   test.beforeEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
-    wsId = await b2bSaasHomePage.openUrlAndCreateTestWorkspace(workspaceName);
+    const homePage = new HomePage(page);
+    wsId = await homePage.openUrlAndCreateTestWorkspace(workspaceName);
   });
+  
   test("Add Feedback works @featureBranch @smokeTest", async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
+    const homePage = new HomePage(page);
 
-    await b2bSaasHomePage.clickHelp();
-    await page.getByRole("menuitem", { name: "Leave feedback" }).click();
+    // Open Help menu and navigate to feedback
+    await homePage.clickHelp();
+    await homePage.clickLeaveFeedback();
 
     // Verify feedback window is opened correctly
-    await expect(await page.getByRole("button", { name: "Problem" })).toBeVisible();
-    await expect(await page.getByRole("button", { name: "Feedback & Request" })).toBeVisible();
-    await expect(await page.getByText("You can always email us at support+product@b2bSaas.ai")).toBeVisible();
+    await homePage.verifyFeedbackWindow();
 
-    // Perofrm actions on "Problem" Tab
-    await page.getByRole("button", { name: "Problem" }).click();
-    const txtBxSubject = await page.getByPlaceholder("Something is wrong with");
-    await txtBxSubject.click();
-    await txtBxSubject.fill("test subject");
+    // Perform actions on "Problem" Tab
+    await homePage.selectProblemTab();
+    await homePage.fillFeedbackSubject("test subject");
+    await homePage.fillFeedbackBody("I am test only");
 
-    const txtBxBody = page.getByPlaceholder("When I click the…");
-    await txtBxBody.click();
-    await txtBxBody.fill("I am test only");
-    await expect(await page.getByRole("button", { name: "Submit" })).toBeEnabled();
+    // Verify submit button is enabled
+    await homePage.verifySubmitButtonEnabled();
   });
+  
   test.afterEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
+    // Note: Using original homePage for cleanup until deleteWorkspaceByID is added to refactored version
+    const { homePage: originalHomePage } = await import("../../pageobjects/homePage.po");
+    const cleanupHomePage = new originalHomePage(page);
     if (wsId) {
-      await b2bSaasHomePage.deleteWorkspaceByID(wsId);
+      await cleanupHomePage.deleteWorkspaceByID(wsId);
     }
   });
 });

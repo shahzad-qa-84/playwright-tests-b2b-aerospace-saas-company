@@ -1,53 +1,63 @@
 import { faker } from "@faker-js/faker";
 import { expect, test } from "@playwright/test";
 
-import { homePage } from "../../pageobjects/homePage.po";
-import { requirements } from "../../pageobjects/requirements.po";
+import { HomePage } from "../../pageobjects/homePageRefactored.po";
+import { RequirementsPage } from "../../pageobjects/requirements.po";
 
-test.describe("Requirement docuemnt as an Attachment test", () => {
+test.describe("Requirement document as an Attachment test", () => {
   const workspaceName = "AutomatedTest_" + faker.internet.userName();
   let wsId: string | undefined;
+  
   test.beforeEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
-    wsId = await b2bSaasHomePage.openUrlAndCreateTestWorkspace(workspaceName);
+    const homePage = new HomePage(page);
+    wsId = await homePage.openUrlAndCreateTestWorkspace(workspaceName);
   });
-  test("Attachment of Reuirement document to the modelling is working successfully. @prod @smokeTest @featureBranch", async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
-    await b2bSaasHomePage.clickRequirements();
+  
+  test("Attachment of Requirement document to the modelling is working successfully. @prod @smokeTest @featureBranch", async ({ page }) => {
+    const homePage = new HomePage(page);
+    const requirementsPage = new RequirementsPage(page);
 
-    // Fill the data in the first requirement document name
-    const requirementPage = new requirements(page);
-    await requirementPage.clickNewDocument();
-    await requirementPage.clickNewRequirentBlock();
+    // Navigate to Requirements and create document
+    await homePage.clickRequirements();
+    await requirementsPage.clickNewDocument();
+    await requirementsPage.clickNewRequirementBlock();
+
+    // Fill requirement description and rationale
     const editableTxtBx = page.getByRole("textbox").first();
     await editableTxtBx.fill("this a test description");
     await editableTxtBx.press("Enter");
+    
     await page.locator('[data-testid*="editor-content_rich-text-cell_"][data-testid*="_rationale"]').first().getByRole("paragraph").click();
     await editableTxtBx.fill("test");
     await editableTxtBx.press("Enter");
 
-    // Add the requirement document as an attachment
-    await b2bSaasHomePage.clickModelling();
-    await b2bSaasHomePage.clickAttachments();
-    await b2bSaasHomePage.clickAddAttachment();
-    await page.getByTestId("menu-item_requirements").hover();
-    await page.getByTestId("menu-item_attach-req-page").click();
+    // Navigate to Modelling and Attachments
+    await homePage.clickModelling();
+    await homePage.clickAttachments();
 
-    // Verify the attachment
-    await b2bSaasHomePage.clickGridView();
-    await expect(await page.getByText("New Document")).toBeVisible();
+    // Attach requirement document as attachment
+    await homePage.clickAddAttachment();
+    await homePage.hoverRequirementsMenuItem();
+    await homePage.clickAttachRequirementPage();
+
+    // Verify attachment in grid view
+    await homePage.clickGridView();
+    await homePage.verifyNewDocumentVisible();
 
     // Delete the attachment
-    await b2bSaasHomePage.clickContextMenuGridView();
-    await b2bSaasHomePage.clickDeleteAttachment();
+    await homePage.clickContextMenuGridView();
+    await homePage.clickDeleteAttachment();
 
-    // Verify that the attachment is deleted
-    await expect(await page.getByRole("heading", { name: "No attachments for this block" })).toBeVisible();
+    // Verify attachment is deleted
+    await homePage.verifyNoAttachmentsMessage();
   });
+  
   test.afterEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
+    // Note: Using original homePage for cleanup until deleteWorkspaceByID is added to refactored version
+    const { homePage: originalHomePage } = await import("../../pageobjects/homePage.po");
+    const cleanupHomePage = new originalHomePage(page);
     if (wsId) {
-      await b2bSaasHomePage.deleteWorkspaceByID(wsId);
+      await cleanupHomePage.deleteWorkspaceByID(wsId);
     }
   });
 });

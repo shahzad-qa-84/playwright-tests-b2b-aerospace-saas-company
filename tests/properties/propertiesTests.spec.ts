@@ -1,53 +1,45 @@
 import { faker } from "@faker-js/faker";
 import { expect, test } from "@playwright/test";
 
-import { homePage } from "../../pageobjects/homePage.po";
-import { propertyPage } from "../../pageobjects/property.po";
+import { HomePage } from "../../pageobjects/homePageRefactored.po";
+import { PropertyPage } from "../../pageobjects/propertyRefactored.po";
 
 test.describe("Properties Tests", () => {
   const workspaceName = "AutomatedTest_" + faker.internet.userName();
   let wsId: string | undefined;
   test.beforeEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
-    wsId = await b2bSaasHomePage.openUrlAndCreateTestWorkspace(workspaceName);
+    const homePage = new HomePage(page);
+    wsId = await homePage.openUrlAndCreateTestWorkspace(workspaceName);
   });
-  test.skip("Create new property, set units for property, Pin Property and Un-pin it, Add Group, Add property inside group, remove it @smokeTest @featureBranch", async ({
+  test("Create new property, set units for property, Pin Property and Un-pin it, Add Group, Add property inside group, remove it @smokeTest @featureBranch", async ({
     page,
   }) => {
-    const property = new propertyPage(page);
+    const propertyPage = new PropertyPage(page);
 
-    // Add a new property from Blocks section and verify if its added properly
+    // Create property with value using the workflow method
     const propertyName = "Property_" + faker.person.firstName();
-    await property.addPropertyOrGroupLink();
-    await property.addNewPropertyFromBlockSection(propertyName);
-    await expect(await page.getByText(propertyName)).toBeVisible();
-
-    // Add the property value bettween 1-1000 km and verify if its properly assigned
     const propertyValue = Math.floor(Math.random() * 1000) + 1 + " km";
-    await property.addPropertyValue(propertyName, propertyValue);
-    await expect(await page.getByText(propertyValue, { exact: true }).first()).toBeVisible();
+    await propertyPage.createPropertyWithValue(propertyName, propertyValue);
 
-    // Lock property and verify its locked
-    const lockIcon = page.locator('svg[data-icon="lock"]').first();
-    await property.lockProperty();
-    await expect(await lockIcon).toBeVisible();
+    // Lock property workflow
+    await propertyPage.lockPropertyWorkflow(propertyName, propertyValue);
 
-    // UnLock property and verify its unlocked by editing the value
-    await property.unlockProperty();
+    // Unlock and edit property workflow
     const newPropertyValue = Math.floor(Math.random() * 1000) + 1 + " km";
-    await property.addPropertyValue(propertyName, newPropertyValue);
-    await expect(await page.getByText(newPropertyValue, { exact: true }).first()).toBeVisible();
+    await propertyPage.unlockAndEditPropertyWorkflow(propertyName, newPropertyValue);
 
     // Pin Property
-    await property.expandPropertyDetails();
-    await property.clickPinProperty();
-    await expect(await page.getByText("Pinned Properties").first()).toBeVisible();
+    await propertyPage.expandPropertyDetails();
+    await propertyPage.clickPinProperty();
+    await expect(page.getByText("Pinned Properties").first()).toBeVisible();
   });
 
   test.afterEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
+    // Note: Using original homePage for cleanup until deleteWorkspaceByID is added to refactored version
+    const { homePage: originalHomePage } = await import("../../pageobjects/homePage.po");
+    const cleanupHomePage = new originalHomePage(page);
     if (wsId) {
-      await b2bSaasHomePage.deleteWorkspaceByID(wsId);
+      await cleanupHomePage.deleteWorkspaceByID(wsId);
     }
   });
 });

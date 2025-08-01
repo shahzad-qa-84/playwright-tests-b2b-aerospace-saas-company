@@ -1,39 +1,43 @@
 import { faker } from "@faker-js/faker";
 import { expect, test } from "@playwright/test";
 
-import { homePage } from "../../pageobjects/homePage.po";
-import { propertyPage } from "../../pageobjects/property.po";
+import { HomePage } from "../../pageobjects/homePageRefactored.po";
+import { PropertyPage } from "../../pageobjects/propertyRefactored.po";
 
 test.describe("Property window test", () => {
   const workspaceName = "AutomatedTest_" + faker.internet.userName();
   let wsId: string | undefined;
+  
   test.beforeEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
-    wsId = await b2bSaasHomePage.openUrlAndCreateTestWorkspace(workspaceName);
+    const homePage = new HomePage(page);
+    wsId = await homePage.openUrlAndCreateTestWorkspace(workspaceName);
   });
+  
   test("Verify creation and deletion of property from window works @smokeTest @featureBranch", async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
-    await b2bSaasHomePage.clickMoreConfigurations();
-    await b2bSaasHomePage.clickPropertiesFromMenu();
+    const homePage = new HomePage(page);
+    const propertyPage = new PropertyPage(page);
 
-    // Add the property
+    // Navigate to property configuration window
+    await homePage.clickMoreConfigurations();
+    await homePage.clickPropertiesFromMenu();
+
+    // Create new property from main window
     const propertyToBeAdded = faker.person.firstName();
-    const property = new propertyPage(page);
-    await property.addNewPropertyFromMainWindow(propertyToBeAdded);
+    await propertyPage.addNewPropertyFromMainWindow(propertyToBeAdded);
 
-    // Verify that property is added
-    await expect(await page.getByText(propertyToBeAdded)).toBeVisible();
+    // Verify property is visible
+    await propertyPage.verifyPropertyInMainWindow(propertyToBeAdded);
 
-    // Delete the added property
-    await page.locator(".formatted-table").click();
-    await page.getByTestId("button_actions-cell_drag").click();
-    await page.getByRole("menuitem", { name: "Delete" }).click();
+    // Delete the created property
+    await propertyPage.deletePropertyFromMainWindow();
   });
 
   test.afterEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
+    // Note: Using original homePage for cleanup until deleteWorkspaceByID is added to refactored version
+    const { homePage: originalHomePage } = await import("../../pageobjects/homePage.po");
+    const cleanupHomePage = new originalHomePage(page);
     if (wsId) {
-      await b2bSaasHomePage.deleteWorkspaceByID(wsId);
+      await cleanupHomePage.deleteWorkspaceByID(wsId);
     }
   });
 });

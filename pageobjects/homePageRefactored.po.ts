@@ -131,6 +131,525 @@ export class HomePage extends BasePage {
     await this.safeClick(this.modelConfigMenuItem);
   }
 
+  /**
+   * Click Properties from menu
+   */
+  async clickPropertiesFromMenu(): Promise<void> {
+    await this.safeClick(this.getByText("Properties"));
+  }
+
+  /**
+   * Verify property configuration elements
+   */
+  async verifyPropertyConfigElements(): Promise<void> {
+    await this.verifyElementVisible(this.getByRole("link", { name: "Properties" }));
+    await this.verifyElementVisible(this.getByText("Label", { exact: true }));
+    await this.verifyElementVisible(this.getByText("Group", { exact: true }));
+    await this.verifyElementVisible(this.getByText("Default"));
+    await this.verifyElementVisible(this.getByText("b2bSaas", { exact: true }));
+    await this.verifyElementVisible(this.getByText("Instances"));
+  }
+
+  /**
+   * Change property type to string
+   */
+  async changePropertyTypeToString(): Promise<void> {
+    await this.safeClick(this.getByTestId("button_type_mass"));
+    await this.safeClick(this.getByRole("menuitem", { name: "string" }));
+    await this.verifyElementVisible(this.getByRole("button", { name: "string" }));
+  }
+
+  /**
+   * Open property instance and verify navigation
+   */
+  async openPropertyInstanceAndVerify(): Promise<void> {
+    await this.safeClick(this.getByTestId("ag-cell_instance_mass"));
+    await this.safeClick(this.getByText("/:mass"));
+    await this.safeClick(this.getByPlaceholder("String value"));
+    await this.verifyElementVisible(this.getByRole("heading", { name: "New System" }).getByText("New System"));
+  }
+
+  /**
+   * Open dependency graph
+   */
+  async openDependencyGraph(): Promise<void> {
+    const expandMenu = this.getByTestId("expandMenuDiv_mass");
+    await this.safeClick(expandMenu.getByTestId("button_block-property-list-item_more"));
+    await this.safeClick(this.getByTestId("menu-item_dependency-graph"));
+    await this.safeClick(this.locator("div").filter({ hasText: "Dependency Graph: New System:mass" }).nth(3));
+    await this.verifyElementVisible(this.locator(".react-flow__pane"));
+  }
+
+  async clickRequirements(): Promise<void> {
+    await this.safeClick(this.getByTestId("nav-link_menu-pane_requirements"));
+  }
+
+  /**
+   * Click on Help menu
+   */
+  async clickHelp(): Promise<void> {
+    await this.safeClick(this.getByText("Help"));
+  }
+
+  /**
+   * Click on Leave Feedback menu item
+   */
+  async clickLeaveFeedback(): Promise<void> {
+    await this.safeClick(this.getByRole("menuitem", { name: "Leave feedback" }));
+  }
+
+  /**
+   * Verify feedback window elements are visible
+   */
+  async verifyFeedbackWindow(): Promise<void> {
+    await this.verifyElementVisible(this.getByRole("button", { name: "Problem" }));
+    await this.verifyElementVisible(this.getByRole("button", { name: "Feedback & Request" }));
+    await this.verifyElementVisible(this.getByText("You can always email us at support+product@b2bSaas.ai"));
+  }
+
+  /**
+   * Select Problem tab in feedback
+   */
+  async selectProblemTab(): Promise<void> {
+    await this.safeClick(this.getByRole("button", { name: "Problem" }));
+  }
+
+  /**
+   * Fill feedback subject
+   */
+  async fillFeedbackSubject(subject: string): Promise<void> {
+    const subjectInput = this.getByPlaceholder("Something is wrong with");
+    await this.safeClick(subjectInput);
+    await this.safeFill(subjectInput, subject);
+  }
+
+  /**
+   * Fill feedback body
+   */
+  async fillFeedbackBody(body: string): Promise<void> {
+    const bodyInput = this.getByPlaceholder("When I click the…");
+    await this.safeClick(bodyInput);
+    await this.safeFill(bodyInput, body);
+  }
+
+  /**
+   * Verify submit button is enabled
+   */
+  async verifySubmitButtonEnabled(): Promise<void> {
+    const submitButton = this.getByRole("button", { name: "Submit" });
+    await this.verifyElementVisible(submitButton);
+    await this.page.waitForFunction(
+      (button) => !button.disabled,
+      await submitButton.elementHandle()
+    );
+  }
+
+  /**
+   * Click on Grid View
+   */
+  async clickGridView(): Promise<void> {
+    await this.safeClick(this.getByTestId("button_grid-view"));
+  }
+
+  /**
+   * Verify thumbnail is visible
+   */
+  async verifyThumbnailVisible(): Promise<void> {
+    await this.verifyElementVisible(this.getByRole("img", { name: "thumbnail" }));
+  }
+
+  /**
+   * Open attachment context menu
+   */
+  async openAttachmentContextMenu(): Promise<void> {
+    await this.safeClick(this.getByTestId("button_more-options_attachment-context-menu"));
+  }
+
+  /**
+   * Click on attachment details menu item
+   */
+  async clickAttachmentDetails(): Promise<void> {
+    await this.safeClick(this.getByTestId("menu-item_details"));
+  }
+
+  /**
+   * Verify attachment details panel
+   */
+  async verifyAttachmentDetailsPanel(attachmentName: string, fileSize: string): Promise<void> {
+    const detailsPanel = this.getByLabel(`Attachment details: ${attachmentName}`);
+    await this.safeClick(detailsPanel.getByRole("img").first());
+    await this.verifyElementVisible(detailsPanel.getByText(attachmentName, { exact: true }));
+    await this.verifyElementVisible(this.getByText("image/png"));
+    await this.verifyElementVisible(detailsPanel.getByText(fileSize));
+  }
+
+  /**
+   * Close details panel using Escape key
+   */
+  async closeDetailsPanelWithEscape(): Promise<void> {
+    await this.page.keyboard.press("Escape");
+  }
+
+  /**
+   * Verify details panel is hidden
+   */
+  async verifyDetailsPanelHidden(attachmentName: string, fileSize: string): Promise<void> {
+    const detailsPanel = this.getByLabel(`Attachment details: ${attachmentName}`);
+    await this.verifyElementHidden(detailsPanel.getByText(fileSize));
+  }
+
+  /**
+   * Verify "View block" is not shown
+   */
+  async verifyViewBlockNotShown(): Promise<void> {
+    await this.openAttachmentContextMenu();
+    await this.clickAttachmentDetails();
+    await this.verifyElementHidden(this.getByText("View block"));
+  }
+
+  /**
+   * Open attachment context menu (alternative method)
+   */
+  async openAttachmentContextMenuByTestId(): Promise<void> {
+    await this.safeClick(this.getByTestId("button_attachment-context-menu"));
+  }
+
+  /**
+   * View attachment file
+   */
+  async viewAttachment(): Promise<void> {
+    await this.safeClick(this.getByTestId("button_view"));
+  }
+
+  /**
+   * Go back from viewer
+   */
+  async goBackFromViewer(): Promise<void> {
+    await this.safeClick(this.getByTestId("button_back-button"));
+  }
+
+  /**
+   * Download attachment and handle popup
+   */
+  async downloadAttachment(): Promise<void> {
+    const [popup, download] = await Promise.all([
+      this.page.waitForEvent("popup"),
+      this.page.waitForEvent("download"),
+      this.safeClick(this.getByTestId("button_download")),
+    ]);
+    await popup.close();
+    await download;
+  }
+
+  /**
+   * Verify preview image and view block status
+   */
+  async verifyPreviewAndViewBlock(): Promise<void> {
+    await this.verifyElementVisible(this.getByRole("img", { name: "Preview Image" }));
+    await this.verifyElementHidden(this.getByText("View block"));
+  }
+
+  /**
+   * Complete KiCad file verification workflow
+   */
+  async completeKiCadFileWorkflow(): Promise<void> {
+    // Open details and preview
+    await this.openAttachmentContextMenuByTestId();
+    await this.clickAttachmentDetails();
+    await this.viewAttachment();
+    await this.goBackFromViewer();
+
+    // Open details again and download
+    await this.openAttachmentContextMenuByTestId();
+    await this.clickAttachmentDetails();
+    await this.downloadAttachment();
+
+    // Verify preview and view block status
+    await this.verifyPreviewAndViewBlock();
+  }
+
+  /**
+   * Click view file button (diamond icon)
+   */
+  async clickViewFile(): Promise<void> {
+    await this.safeClick(this.getByTestId("button_view-file"));
+  }
+
+  /**
+   * Verify 3D viewer components
+   */
+  async verify3DViewerComponents(): Promise<void> {
+    await this.verifyElementVisible(this.locator("#HoopsWebViewer-canvas-container div").nth(2));
+    await this.verifyElementVisible(this.getByText("Models"));
+    await this.verifyElementVisible(this.getByText("Product"));
+    await this.verifyElementVisible(this.getByText("Exported from Blender-2.76 ("));
+  }
+
+  /**
+   * Click on canvas to ensure viewer is ready
+   */
+  async clickCanvasToActivateViewer(): Promise<void> {
+    await this.locator("canvas").click({ position: { x: 200, y: 150 } });
+  }
+
+  /**
+   * Verify ECAD layer functionality
+   */
+  async verifyEcadLayer(layerName: string): Promise<void> {
+    const layerButton = this.getByRole("button", { name: layerName }).first();
+    const layerLabel = this.locator("label").filter({ hasText: layerName }).first();
+
+    if (await layerButton.isVisible()) {
+      await this.safeClick(layerButton);
+      await this.page.waitForTimeout(100); // Small wait for state change
+    } else if (await layerLabel.isVisible()) {
+      await this.safeClick(layerLabel);
+      await this.page.waitForTimeout(100); // Small wait for state change
+    } else {
+      console.warn(`Layer not found in UI: ${layerName}`);
+    }
+  }
+
+  /**
+   * Verify all ECAD layers
+   */
+  async verifyAllEcadLayers(): Promise<void> {
+    const ecadLayers = [
+      "F_Cu", "In1_Cu", "In2_Cu", "In3_Cu", "In4_Cu", "B_Cu",
+      "B_Paste", "F_Paste", "B_Silkscreen", "F_Silkscreen",
+      "B_Mask", "F_Mask", "Edge_Cuts"
+    ];
+
+    for (const layer of ecadLayers) {
+      await this.verifyEcadLayer(layer);
+    }
+  }
+
+  /**
+   * Close viewer with Escape key
+   */
+  async closeViewerWithEscape(): Promise<void> {
+    await this.page.keyboard.press("Escape");
+  }
+
+  /**
+   * Click on the b2bSaas logo (roll-up functionality)
+   */
+  async clickb2bSaasLogo(): Promise<void> {
+    await this.safeClick(this.getByText("b2bSaas"));
+  }
+
+  /**
+   * Verify property values in roll-up view
+   */
+  async verifyRollUpValues(value1: string, value2: string): Promise<void> {
+    await this.verifyElementVisible(this.getByText(value1, { exact: true }).nth(0));
+    await this.verifyElementVisible(this.getByText(value2, { exact: true }).nth(0));
+  }
+
+  /**
+   * Click on Child Blocks section
+   */
+  async clickChildBlocksSection(): Promise<void> {
+    await this.safeClick(this.getByText("Child Blocks"));
+  }
+
+  /**
+   * Click on specific child by name
+   */
+  async clickChildByName(childName: string): Promise<void> {
+    const childElement = this.getByLabel("Child Blocks1").getByText(childName);
+    await this.safeClick(childElement);
+  }
+
+  /**
+   * Click on Profile menu
+   */
+  async clickProfile(): Promise<void> {
+    await this.safeClick(this.getByTestId("button_user-menu"));
+  }
+
+  /**
+   * Open command palette for workspace search
+   */
+  async openCommandPalette(): Promise<void> {
+    await this.safeClick(this.getByTestId("button_show-command-palette"));
+  }
+
+  /**
+   * Search for workspace in command palette
+   */
+  async searchWorkspaceInPalette(workspaceName: string): Promise<void> {
+    const searchInput = this.getByPlaceholder("Search for workspaces, blocks, or actions...");
+    await this.safeFill(searchInput, workspaceName);
+    await this.safeClick(this.getByTestId(`menu-item_${workspaceName.toLowerCase()}`));
+  }
+
+  /**
+   * Verify workspace loaded message
+   */
+  async verifyWorkspaceLoaded(): Promise<void> {
+    await this.verifyElementVisible(this.getByText("Workspace loaded"));
+  }
+
+  /**
+   * Click back to blocks link
+   */
+  async clickBackToBlocks(): Promise<void> {
+    await this.safeClick(this.getByRole("link", { name: "Back to Blocks" }));
+  }
+
+  /**
+   * Verify New System heading
+   */
+  async verifyNewSystemHeading(): Promise<void> {
+    await this.verifyElementVisible(this.getByRole("heading", { name: "New System" }).locator("span"));
+  }
+
+  /**
+   * Complete workspace search workflow
+   */
+  async searchAndNavigateToWorkspace(workspaceName: string): Promise<void> {
+    await this.openCommandPalette();
+    await this.searchWorkspaceInPalette(workspaceName);
+    await this.verifyWorkspaceLoaded();
+    await this.clickBackToBlocks();
+    await this.verifyNewSystemHeading();
+  }
+
+  /**
+   * Click Add Attachment button
+   */
+  async clickAddAttachment(): Promise<void> {
+    await this.safeClick(this.getByTestId("button_add-attachment"));
+  }
+
+  /**
+   * Hover over requirements menu item
+   */
+  async hoverRequirementsMenuItem(): Promise<void> {
+    await this.getByTestId("menu-item_requirements").hover();
+  }
+
+  /**
+   * Click attach requirement page option
+   */
+  async clickAttachRequirementPage(): Promise<void> {
+    await this.safeClick(this.getByTestId("menu-item_attach-req-page"));
+  }
+
+  /**
+   * Click context menu in grid view
+   */
+  async clickContextMenuGridView(): Promise<void> {
+    await this.safeClick(this.getByTestId("button_context-menu-grid-view"));
+  }
+
+  /**
+   * Click delete attachment option
+   */
+  async clickDeleteAttachment(): Promise<void> {
+    await this.safeClick(this.getByTestId("menu-item_delete-attachment"));
+  }
+
+  /**
+   * Verify new document is visible
+   */
+  async verifyNewDocumentVisible(): Promise<void> {
+    await this.verifyElementVisible(this.getByText("New Document"));
+  }
+
+  /**
+   * Verify no attachments message
+   */
+  async verifyNoAttachmentsMessage(): Promise<void> {
+    await this.verifyElementVisible(this.getByRole("heading", { name: "No attachments for this block" }));
+  }
+
+  /**
+   * Open attachment context menu (specific for attachments)
+   */
+  async openAttachmentContextMenuForDetails(): Promise<void> {
+    await this.safeClick(this.getByTestId("button_attachment-context-menu"));
+  }
+
+  /**
+   * Click attachment details from context menu
+   */
+  async clickAttachmentDetailsFromMenu(): Promise<void> {
+    await this.safeClick(this.getByTestId("menu-item_details"));
+  }
+
+  /**
+   * Verify PDF attachment details
+   */
+  async verifyPdfAttachmentDetails(): Promise<void> {
+    await this.verifyElementVisible(this.getByRole("img", { name: "Preview Image" }));
+    await this.verifyElementVisible(this.getByTestId("button_download"));
+    await this.verifyElementHidden(this.getByText("View block"));
+  }
+
+  /**
+   * Close attachment details with Escape
+   */
+  async closeAttachmentDetails(): Promise<void> {
+    await this.page.keyboard.press("Escape");
+  }
+
+  /**
+   * Click invite new user button
+   */
+  async clickInviteNewUser(): Promise<void> {
+    await this.safeClick(this.getByTestId("button_menu-pane_show-invite-new-user"));
+  }
+
+  /**
+   * Enter user email for invitation
+   */
+  async enterUserEmail(email: string): Promise<void> {
+    const emailInput = this.getByPlaceholder("john@space.co jane@space.co");
+    await this.safeClick(emailInput);
+    await this.safeFill(emailInput, email);
+  }
+
+  /**
+   * Verify default role is User
+   */
+  async verifyDefaultUserRole(): Promise<void> {
+    const roleButton = this.getByTestId("button_open-menu");
+    await this.verifyElementVisible(roleButton);
+    // Note: Using page.waitForFunction to check text content
+    await this.page.waitForFunction(
+      (button) => button.textContent?.includes("User"),
+      await roleButton.elementHandle()
+    );
+  }
+
+  /**
+   * Click submit invite users button
+   */
+  async clickSubmitInvite(): Promise<void> {
+    await this.safeClick(this.getByTestId("button_submit-invite-users"));
+  }
+
+  /**
+   * Verify invitation success message
+   */
+  async verifyInvitationSuccess(): Promise<void> {
+    await this.verifyElementVisible(this.getByText("Users invited successfully"));
+  }
+
+  /**
+   * Complete user invitation workflow
+   */
+  async inviteUser(email: string): Promise<void> {
+    await this.clickInviteNewUser();
+    await this.enterUserEmail(email);
+    await this.verifyDefaultUserRole();
+    await this.clickSubmitInvite();
+    await this.verifyInvitationSuccess();
+  }
+
   // Header Actions
   async expandModellingMenu(): Promise<void> {
     await this.safeClick(this.menuToggleButton);

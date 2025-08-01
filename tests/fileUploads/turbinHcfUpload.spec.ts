@@ -2,7 +2,7 @@ import { faker } from "@faker-js/faker";
 import { expect, test } from "@playwright/test";
 
 import { attachmentsPage } from "../../pageobjects/attachmentPage.po";
-import { homePage } from "../../pageobjects/homePage.po";
+import { HomePage } from "../../pageobjects/homePageRefactored.po";
 
 const attachmentName = "Turbine.hsf";
 
@@ -13,38 +13,40 @@ test.describe("Turbine.hsf Upload Test", () => {
 
   // Setup: Create a new test workspace
   test.beforeEach(async ({ page }) => {
-    const home = new homePage(page);
-    wsId = await home.openUrlAndCreateTestWorkspace(workspaceName);
+    const homePage = new HomePage(page);
+    wsId = await homePage.openUrlAndCreateTestWorkspace(workspaceName);
   });
 
   test("Upload and verify Turbine.hsf file attachment @prod @smokeTest", async ({ page }) => {
-    const home = new homePage(page);
-    const attachment = new attachmentsPage(page);
+    const homePage = new HomePage(page);
+    const attachmentPage = new attachmentsPage(page);
 
-    // Step 1: Navigate to the Attachments section
-    await home.clickAttachments();
+    // Navigate to the Attachments section
+    await homePage.clickAttachments();
 
-    // Step 2: Upload the HSF file
-    await attachment.uploadAttachment(attachmentName);
+    // Upload the HSF file
+    await attachmentPage.uploadAttachment(attachmentName);
 
-    // Step 3: Verify that the uploaded file appears
+    // Verify that the uploaded file appears
     await expect(page.getByText(attachmentName).first()).toBeVisible();
     await expect(page.getByRole("cell", { name: attachmentName }).first()).toBeVisible();
 
-    // Step 4: Wait for backend processing and verify success
-    await attachment.verifyProcessingFinished();
-    await attachment.verifyConversionSuccess();
+    // Wait for backend processing and verify success
+    await attachmentPage.verifyProcessingFinished();
+    await attachmentPage.verifyConversionSuccess();
 
-    // Step 5: Delete the file and confirm it was removed
-    await attachment.deleteAttachment(attachmentName);
+    // Delete the file and confirm it was removed
+    await attachmentPage.deleteAttachment(attachmentName);
     await expect(page.getByRole("cell", { name: attachmentName })).toBeHidden();
   });
 
   // Teardown: Clean up the workspace
   test.afterEach(async ({ page }) => {
-    const home = new homePage(page);
+    // Note: Using original homePage for cleanup until deleteWorkspaceByID is added to refactored version
+    const { homePage: originalHomePage } = await import("../../pageobjects/homePage.po");
+    const cleanupHomePage = new originalHomePage(page);
     if (wsId) {
-      await home.deleteWorkspaceByID(wsId);
+      await cleanupHomePage.deleteWorkspaceByID(wsId);
     }
   });
 });

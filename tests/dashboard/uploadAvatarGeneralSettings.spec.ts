@@ -1,71 +1,64 @@
 import { faker } from "@faker-js/faker";
 import { expect, test } from "@playwright/test";
 
-import { homePage } from "../../pageobjects/homePage.po";
-import { settingsPage } from "../../pageobjects/settings.po";
+import { HomePage } from "../../pageobjects/homePageRefactored.po";
+import { SettingsPage } from "../../pageobjects/settingsRefactored.po";
 
 test.describe("General Settings Update test", () => {
   const workspaceName = "AutomatedTest_" + faker.internet.userName();
   let wsId: string | undefined;
+  
   test.beforeEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
-    wsId = await b2bSaasHomePage.openUrlAndCreateTestWorkspace(workspaceName);
+    const homePage = new HomePage(page);
+    wsId = await homePage.openUrlAndCreateTestWorkspace(workspaceName);
   });
+  
   test("Verify that Upload Avatar from General Settings works @featureBranch @smokeTest", async ({ page }) => {
-    const b2bSaasHomePage = await new homePage(page);
+    const homePage = new HomePage(page);
+    const settingsPage = new SettingsPage(page);
 
-    await b2bSaasHomePage.clickProfile();
+    // Navigate to profile settings
+    await homePage.clickProfile();
+    await settingsPage.clickSettings();
+    await settingsPage.clickGeneralSettings();
 
-    // Go to user settings
-    const userSettingsPage = await new settingsPage(page);
-    await userSettingsPage.clickSettings();
+    // Get current avatar source before upload
+    const oldAvatarSrc = await settingsPage.getCurrentAvatarSrc();
 
-    await userSettingsPage.clickGeneralSettings();
+    // Upload new company logo
+    await settingsPage.uploadCompanyLogo("./resources/b2bSaas-logo.png");
 
-    // Extract the 'src' attribute of the <img> element
-    const imgSrcOldValue = await page.getAttribute('img[class="org-profile-area--avatar-image"]', "src");
-    const extractedOoldSrcValue = imgSrcOldValue?.split(".amazonaws.com/")[1];
+    // Get new avatar source and verify it changed
+    const newAvatarSrc = await settingsPage.getNewAvatarSrc();
+    await settingsPage.verifyAvatarChanged(oldAvatarSrc, newAvatarSrc);
 
-    // Upload Logo
-    await page.getByTestId("input_upload-file-input_upload-company-logo").setInputFiles("./resources/b2bSaas-logo.png");
-    await page.reload();
-    await page.waitForLoadState("domcontentloaded");
-    const imgSrcNewValue = await page.getAttribute('img[alt="User avatar"]', "src");
-    const extractedNewSrcValue = imgSrcNewValue?.split(".amazonaws.com/")[1];
-
-    // Verify that Avatar Src old and new values are different
-    await expect(extractedOoldSrcValue).not.toEqual(extractedNewSrcValue);
-
-    // Update Org. info
+    // Update organization information
     const orgName = `b2bSaas Testing Organization: ${new Date().getTime()}`;
     const orgDesc = "b2bSaas testing team playground org.";
-    await page.getByPlaceholder("Enter organization name...").click();
-    await page.getByPlaceholder("Enter organization name...").fill(orgName);
+    
+    await settingsPage.enterOrganizationName(orgName);
+    await settingsPage.enterOrganizationDescription(orgDesc);
 
-    // Update Org. description
-    const txtBxDescription = await page.getByPlaceholder("Enter organization description...");
-    await txtBxDescription.click();
-    await txtBxDescription.press("Meta+a");
-    await txtBxDescription.fill(orgDesc);
+    // Add company domain tag
+    const domain = "b2bSaas.com";
+    await settingsPage.addCompanyDomain(domain);
+    await settingsPage.verifyDomainTagVisible(domain);
 
-    // Add Tag and verify if its added
-    const addTag = page.getByTestId("input_company-domains");
-    await addTag.getByRole("textbox").fill("b2bSaas.com");
-    await addTag.getByRole("textbox").press("Enter");
-    await expect(await page.getByText("b2bSaas.com")).toBeVisible();
+    // Remove domain tag and submit settings
+    await settingsPage.removeCompanyDomain();
+    await settingsPage.submitSettings();
 
-    // Remove Tag and verify if its deleted along with updated information icon
-    await page.getByLabel("Remove tag").nth(1).click();
-    const btnSubmit = await page.getByTestId("button_settings_submit");
-    await btnSubmit.click();
-    await expect(await page.getByText("Organization info updated")).toBeVisible();
-    await expect(await page.getByText("b2bSaas.com")).toBeHidden();
+    // Verify updates were successful
+    await settingsPage.verifyOrganizationInfoUpdated();
+    await settingsPage.verifyDomainTagHidden(domain);
   });
 
   test.afterEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
+    // Note: Using original homePage for cleanup until deleteWorkspaceByID is added to refactored version
+    const { homePage: originalHomePage } = await import("../../pageobjects/homePage.po");
+    const cleanupHomePage = new originalHomePage(page);
     if (wsId) {
-      await b2bSaasHomePage.deleteWorkspaceByID(wsId);
+      await cleanupHomePage.deleteWorkspaceByID(wsId);
     }
   });
 });

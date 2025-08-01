@@ -1,43 +1,47 @@
 import { faker } from "@faker-js/faker";
 import { expect, test } from "@playwright/test";
 
-import { homePage } from "../../pageobjects/homePage.po";
+import { HomePage } from "../../pageobjects/homePageRefactored.po";
 
 test.describe("Search workspace from top header test", () => {
   const workspaceName1 = "AutomatedTest_1_" + faker.internet.userName().substring(0, 5);
   const workspaceName2 = "AutomatedTest_2_" + faker.internet.userName().substring(0, 5);
   let wsId1: string | undefined;
   let wsId2: string | undefined;
+  
   test.beforeEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
-    wsId1 = await b2bSaasHomePage.openUrlAndCreateTestWorkspace(workspaceName1);
+    const homePage = new HomePage(page);
+    wsId1 = await homePage.openUrlAndCreateTestWorkspace(workspaceName1);
     await page.waitForTimeout(3000);
   });
+  
   test("Verify that searching workspace from top header works @featureBranch @prod @smokeTest", async ({ page }) => {
-    // Create new workspace
-    const b2bSaasHomePage = new homePage(page);
-    wsId2 = await b2bSaasHomePage.openUrlAndCreateTestWorkspace(workspaceName2);
+    const homePage = new HomePage(page);
 
-    // Search for workspace
-    await page.getByTestId("button_show-command-palette").click();
-    await page.getByPlaceholder("Search for workspaces, blocks, or actions...").fill(workspaceName1);
-    await page.getByTestId("menu-item_" + workspaceName1.toLowerCase()).click();
+    // Create second workspace
+    wsId2 = await homePage.openUrlAndCreateTestWorkspace(workspaceName2);
 
-    // Verify that workspace is visible
-    await expect(await page.getByText("Workspace loaded")).toBeVisible();
+    // Open command palette and search for workspace
+    await homePage.openCommandPalette();
+    await homePage.searchWorkspaceInPalette(workspaceName1);
 
-    // Error page is there but as workaround click on back to blocks
-    await page.getByRole("link", { name: "Back to Blocks" }).click();
-    await expect(await page.getByRole("heading", { name: "New System" }).locator("span")).toBeVisible();
+    // Verify workspace is loaded
+    await homePage.verifyWorkspaceLoaded();
+
+    // Navigate back to blocks view
+    await homePage.clickBackToBlocks();
+    await homePage.verifyNewSystemHeading();
   });
 
   test.afterEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
+    // Note: Using original homePage for cleanup until deleteWorkspaceByID is added to refactored version
+    const { homePage: originalHomePage } = await import("../../pageobjects/homePage.po");
+    const cleanupHomePage = new originalHomePage(page);
     if (wsId1) {
-      await b2bSaasHomePage.deleteWorkspaceByID(wsId1);
+      await cleanupHomePage.deleteWorkspaceByID(wsId1);
     }
     if (wsId2) {
-      await b2bSaasHomePage.deleteWorkspaceByID(wsId2);
+      await cleanupHomePage.deleteWorkspaceByID(wsId2);
     }
   });
 });

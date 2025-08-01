@@ -2,63 +2,60 @@ import { faker } from "@faker-js/faker";
 import { test } from "@playwright/test";
 import { expect } from "@playwright/test";
 
-import { homePage } from "../../pageobjects/homePage.po";
+import { HomePage } from "../../pageobjects/homePageRefactored.po";
+import { DiscussionPage } from "../../pageobjects/discussionRefactored.po";
 
 test.describe.serial("Comments and History section test", () => {
   const workspaceName = "AutomatedTest_" + faker.internet.userName();
   let wsId: string | undefined;
   test.beforeEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
-    wsId = await b2bSaasHomePage.openUrlAndCreateTestWorkspace(workspaceName);
+    const homePage = new HomePage(page);
+    wsId = await homePage.openUrlAndCreateTestWorkspace(workspaceName);
   });
+  
   test("Verify that Comments are added, copied properly in the discussion section. @prod @smokeTest @featureBranch @prod", async ({
     page,
   }) => {
-    const b2bSaasHomePage = new homePage(page);
-    await b2bSaasHomePage.clickDiscussion();
+    const homePage = new HomePage(page);
+    const discussionPage = new DiscussionPage(page);
 
-    // Verify that “Add Comment” is working successfully in the “Discussion” tab
+    // Navigate to discussion section
+    await homePage.clickDiscussion();
+
+    // Add comment and verify it's visible
     const comment = "b2bSaas is going to make a history in engineering world";
-    await b2bSaasHomePage.addComment(comment);
-    await expect(await page.getByText("b2bSaas is going to make a history in engineering world")).toBeVisible();
+    await discussionPage.addCommentWithVerification(comment);
 
-    // Click history and verify that comment is displayed in the history section
-    await b2bSaasHomePage.clickHistory();
-    await expect(await page.getByText("b2bSaas is going to make a history in engineering world").first()).toBeVisible();
+    // Verify comment appears in history section
+    await discussionPage.verifyCommentInHistoryWorkflow(comment);
 
-    // Copy the link and verify its copied correctly
-    await page.getByTestId("button_toggle-history-and-comments-panel").click();
-    await page.getByTestId("button_toggle-programmatics-panel").click();
-    await page.getByText("b2bSaas is going to make a history in engineering world").click();
-    await page.getByTestId("button_comment-actions-menu").hover();
-    await page.getByTestId("button_comment-actions-menu").click();
-    await page.getByTestId("menu-item_copy-link").click();
+    // Copy the comment link
+    await discussionPage.copyCommentLinkWorkflow(comment);
 
     // @todo add InfinityScroll test
     // we added new function "InfinityScroll" to load more history data when user scroll down and button is visible
   });
 
   test("Verify that Comments/history expansion is working successfully. @smokeTest @featureBranch", async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
-    await b2bSaasHomePage.clickDiscussion();
+    const homePage = new HomePage(page);
+    const discussionPage = new DiscussionPage(page);
+
+    // Navigate to discussion section
+    await homePage.clickDiscussion();
 
     // Expand comments and history section and verify all history data is there
-    await b2bSaasHomePage.clickHistory();
-    const tabComments = await page.getByTestId("tab_comments");
-    await tabComments.click();
-    await page.locator(".comment-editor").click();
-    await page.getByTestId("editor-content_comment-editor").fill("test1");
-    await page.getByTestId("button_comment-editor-send").click();
-    await tabComments.click();
-
-    // Verify that comment is added properly in comments history section
-    await expect(await page.getByText("test1")).toBeVisible();
+    await discussionPage.clickHistory();
+    
+    // Add comment in comments tab and verify
+    await discussionPage.addCommentInTabWorkflow("test1");
   });
 
   test.afterEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
+    // Note: Using original homePage for cleanup until deleteWorkspaceByID is added to refactored version
+    const { homePage: originalHomePage } = await import("../../pageobjects/homePage.po");
+    const cleanupHomePage = new originalHomePage(page);
     if (wsId) {
-      await b2bSaasHomePage.deleteWorkspaceByID(wsId);
+      await cleanupHomePage.deleteWorkspaceByID(wsId);
     }
   });
 });

@@ -10,7 +10,7 @@ export class PropertyPage extends BasePage {
   // Property input elements
   private readonly addNewPropertyInput: Locator;
   private readonly addNewGroupInput: Locator;
-  private readonly addPropertyOrGroupLink: Locator;
+  private readonly addPropertyOrGroupLinkLocator: Locator;
   private readonly addNewRowButton: Locator;
 
   // Property details elements
@@ -29,7 +29,7 @@ export class PropertyPage extends BasePage {
     // Initialize property input locators
     this.addNewPropertyInput = this.getByPlaceholder(FORM_FIELDS.PLACEHOLDERS.ADD_PROPERTY);
     this.addNewGroupInput = this.getByPlaceholder("Add new group");
-    this.addPropertyOrGroupLink = this.getByText("Add property or group");
+    this.addPropertyOrGroupLinkLocator = this.getByText("Add property or group");
     this.addNewRowButton = this.getByTestId("button_add-new-row");
 
     // Initialize property details locators
@@ -120,7 +120,7 @@ export class PropertyPage extends BasePage {
    * Click the "Add property or group" link
    */
   async addPropertyOrGroupLink(): Promise<void> {
-    await this.safeClick(this.addPropertyOrGroupLink);
+    await this.safeClick(this.addPropertyOrGroupLinkLocator);
   }
 
   /**
@@ -237,5 +237,230 @@ export class PropertyPage extends BasePage {
     await this.unlockProperty();
     await this.addPropertyValue(propertyName, newValue);
     await this.verifyPropertyValue(propertyName, newValue);
+  }
+
+  /**
+   * Add property value with formula beginning
+   */
+  async addPropertyValueWithFormula(propertyName: string, formulaStart: string): Promise<void> {
+    const propertyEditor = this.getPropertyEditor(propertyName);
+    await this.safeClick(propertyEditor);
+    await propertyEditor.clear();
+    await this.safeFill(propertyEditor, formulaStart);
+  }
+
+  /**
+   * Select volume from formula menu
+   */
+  async selectVolumeFromMenu(): Promise<void> {
+    await this.safeClick(this.getByText("{{vol"));
+    await this.safeClick(this.getByTestId("menu-item_volume"));
+  }
+
+  /**
+   * Verify property hints are displayed
+   */
+  async verifyPropertyHints(): Promise<void> {
+    await this.verifyElementVisible(this.getByText("Evaluated Equation"));
+    await this.verifyElementVisible(this.getByText("{{/Parent/Child:property}}"));
+  }
+
+  /**
+   * Click on evaluated equation
+   */
+  async clickEvaluatedEquation(): Promise<void> {
+    const evaluatedEquation = this.locator("div").filter({ hasText: /^Evaluated Equation$/ }).first();
+    await this.safeClick(evaluatedEquation);
+    await this.safeClick(this.getByText("0 m^3"));
+  }
+
+  /**
+   * Verify references section is visible
+   */
+  async verifyReferencesSection(): Promise<void> {
+    const referencesSection = this.locator("div").filter({ hasText: /^References$/ }).first();
+    await this.verifyElementVisible(referencesSection);
+  }
+
+  /**
+   * Open comments popover for property
+   */
+  async openCommentsPopover(): Promise<void> {
+    await this.safeClick(this.getByTestId("button_open-comments-popover").first());
+  }
+
+  /**
+   * Add comment to activity timeline
+   */
+  async addCommentToActivityTimeline(message: string): Promise<void> {
+    const commentEditor = this.getByTestId("editor-content_simple-comment-editor");
+    await this.safeClick(commentEditor.getByRole("paragraph"));
+    await this.safeFill(commentEditor, message);
+    await this.safeClick(this.getByTestId("button_simple-comment-editor-send"));
+  }
+
+  /**
+   * Open property details
+   */
+  async openPropertyDetails(propertyName: string): Promise<void> {
+    const expandMenu = this.getByTestId(`expandMenuDiv_${propertyName}`);
+    await this.safeClick(expandMenu.getByTestId("button_block-property-list-item_more"));
+    await this.safeClick(this.getByTestId("menu-item_property-details"));
+  }
+
+  /**
+   * Verify activity log comment
+   */
+  async verifyActivityLogComment(): Promise<void> {
+    const commentTimestamp = this.locator("span").filter({ hasText: "You commented just now" }).locator("span").nth(4);
+    await this.verifyElementVisible(commentTimestamp);
+  }
+
+  /**
+   * Hover on property name field
+   */
+  async hoverOnPropertyName(): Promise<void> {
+    await this.getByPlaceholder("Name").first().hover();
+  }
+
+  /**
+   * Verify comment is visible in activity
+   */
+  async verifyCommentVisible(): Promise<void> {
+    const addedComment = this.getByTestId("editor-content_simple-comment-editor").getByText("This is a test message for");
+    await this.verifyElementVisible(addedComment);
+  }
+
+  /**
+   * Close comments and verify hidden
+   */
+  async closeCommentsAndVerify(): Promise<void> {
+    await this.safeClick(this.getByTestId("button_close"));
+    const addedComment = this.getByTestId("editor-content_simple-comment-editor").getByText("This is a test message for");
+    await this.verifyElementHidden(addedComment);
+  }
+
+  /**
+   * Verify property value in editor
+   */
+  async verifyPropertyValueInEditor(propertyName: string, expectedValue: string): Promise<void> {
+    const editorContent = this.getByTestId(`editor-content_scalar-expression-editor_${propertyName.toLowerCase()}`);
+    await this.verifyElementVisible(editorContent.getByText(expectedValue));
+  }
+
+  /**
+   * Edit property value on specific page
+   */
+  async editPropertyValue(propertyName: string, newValue: string, targetPage?: any): Promise<void> {
+    const pageToUse = targetPage || this.page;
+    const propertyEditor = pageToUse.getByTestId(`editor-content_scalar-expression-editor_${propertyName.toLowerCase()}`);
+    await propertyEditor.click();
+    await propertyEditor.clear();
+    await propertyEditor.fill(newValue);
+    await propertyEditor.press("Enter");
+  }
+
+  /**
+   * Get current page URL
+   */
+  async getCurrentUrl(): Promise<string> {
+    return await this.page.url();
+  }
+
+  /**
+   * Create property with value and verification workflow
+   */
+  async createPropertyWithValueAndVerify(propertyName: string, propertyValue: string): Promise<void> {
+    await this.addPropertyOrGroupLink();
+    await this.addNewPropertyFromBlockSection(propertyName);
+    await this.addPropertyValue(propertyName, propertyValue);
+    await this.verifyPropertyValueInEditor(propertyName, propertyValue);
+  }
+
+  /**
+   * Click on Properties tab
+   */
+  async clickPropertiesTab(): Promise<void> {
+    const propertiesTab = this.getByRole("tab", { name: "Properties" }).getByText("Properties");
+    await this.safeClick(propertiesTab);
+  }
+
+  /**
+   * Verify group is visible
+   */
+  async verifyGroupVisible(groupName: string): Promise<void> {
+    const groupHeading = this.getByRole("heading", { name: groupName }).getByText(groupName);
+    await this.verifyElementVisible(groupHeading);
+  }
+
+  /**
+   * Verify group is empty
+   */
+  async verifyGroupIsEmpty(): Promise<void> {
+    await this.verifyElementVisible(this.getByText("This group is empty"));
+  }
+
+  /**
+   * Create property with specific value
+   */
+  async createPropertyWithValue(propertyName: string, value: string): Promise<void> {
+    await this.addNewPropertyFromBlockSection(propertyName);
+    await this.addPropertyValue(propertyName, value);
+  }
+
+  /**
+   * Verify formula error warning is visible
+   */
+  async verifyFormulaError(): Promise<void> {
+    const errorIcon = this.getByTestId("icon_expression-warning").locator("svg");
+    await this.verifyElementVisible(errorIcon);
+  }
+
+  /**
+   * Verify formula error warning is hidden
+   */
+  async verifyNoFormulaError(): Promise<void> {
+    const errorIcon = this.getByTestId("icon_expression-warning").locator("svg");
+    await this.verifyElementHidden(errorIcon);
+  }
+
+  /**
+   * Verify formula result value
+   */
+  async verifyFormulaResult(expectedValue: string): Promise<void> {
+    await this.verifyElementVisible(this.getByText(expectedValue));
+  }
+
+  /**
+   * Create formula property
+   */
+  async createFormulaProperty(propertyName: string, formula: string): Promise<void> {
+    await this.addNewPropertyFromBlockSection(propertyName);
+    await this.addPropertyValue(propertyName, formula);
+  }
+
+  /**
+   * Add new property from main window
+   */
+  async addNewPropertyFromMainWindow(propertyName: string): Promise<void> {
+    // Implementation would depend on the specific UI elements in the main window
+    // For now, using a placeholder that can be refined based on actual implementation
+    await this.addNewPropertyFromBlockSection(propertyName);
+  }
+
+  /**
+   * Delete property from main window
+   */
+  async deletePropertyFromMainWindow(): Promise<void> {
+    await this.safeClick(this.locator(".formatted-table"));
+    await this.safeClick(this.getByTestId("button_actions-cell_drag"));
+    await this.safeClick(this.getByRole("menuitem", { name: "Delete" }));
+  }
+
+  /**
+   * Verify property is visible in main window
+   */
+  async verifyPropertyInMainWindow(propertyName: string): Promise<void> {
+    await this.verifyElementVisible(this.getByText(propertyName));
   }
 }

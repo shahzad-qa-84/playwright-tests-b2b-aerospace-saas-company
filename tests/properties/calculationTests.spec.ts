@@ -1,45 +1,46 @@
 import { faker } from "@faker-js/faker";
 import { expect, test } from "@playwright/test";
 
-import { homePage } from "../../pageobjects/homePage.po";
-import { propertyPage } from "../../pageobjects/property.po";
+import { HomePage } from "../../pageobjects/homePageRefactored.po";
+import { PropertyPage } from "../../pageobjects/propertyRefactored.po";
 
 test.describe("Calculation Tests", () => {
   const workspaceName = "AutomatedTest_" + faker.internet.userName();
   let wsId: string | undefined;
+  
   test.beforeEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
-    wsId = await b2bSaasHomePage.openUrlAndCreateTestWorkspace(workspaceName);
+    const homePage = new HomePage(page);
+    wsId = await homePage.openUrlAndCreateTestWorkspace(workspaceName);
   });
+  
   test("Calculation test Addition @smokeTest @featureBranch", async ({ page }) => {
-    // Add property 1 and assign value "2"
-    const property = new propertyPage(page);
+    const propertyPage = new PropertyPage(page);
+
+    // Create first property with value "3 kg"
     const propertyName1 = faker.person.firstName() + "_Value1";
-    await property.addPropertyOrGroupLink();
-    await property.addNewPropertyFromBlockSection(propertyName1);
-    const propertyValue = "3 kg";
-    await property.addPropertyValue(propertyName1, propertyValue);
+    await propertyPage.addPropertyOrGroupLink();
+    await propertyPage.addNewPropertyFromBlockSection(propertyName1);
+    await propertyPage.addPropertyValue(propertyName1, "3 kg");
 
-    // Add property 2 and assign value "6"
+    // Create second property with value "6 kg"
     const propertyName2 = faker.person.firstName() + "_Value2";
-    await property.addNewPropertyFromBlockSection(propertyName2);
-    const propertyValue2 = "6 kg";
-    await property.addPropertyValue(propertyName2, propertyValue2);
+    await propertyPage.createPropertyWithValue(propertyName2, "6 kg");
 
+    // Create result property with formula
     const propertyName3 = faker.person.firstName() + "_Result";
-    await property.addNewPropertyFromBlockSection(propertyName3);
-    const propertyValue3 = "{{" + propertyName1 + "}}+{{" + propertyName2 + "}}";
-    await property.addPropertyValue(propertyName3, propertyValue3);
+    const formulaValue = `{{${propertyName1}}}+{{${propertyName2}}}`;
+    await propertyPage.createPropertyWithValue(propertyName3, formulaValue);
 
-    // Verify 6+3 is added and in result is 9 displayed
-    await expect(
-      await page.getByTestId("editor-content_scalar-expression-editor_" + propertyName3.toLowerCase()).getByText("9 kg")
-    ).toBeVisible();
+    // Verify the calculation result (3 kg + 6 kg = 9 kg)
+    await propertyPage.verifyPropertyValueInEditor(propertyName3, "9 kg");
   });
+  
   test.afterEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
+    // Note: Using original homePage for cleanup until deleteWorkspaceByID is added to refactored version
+    const { homePage: originalHomePage } = await import("../../pageobjects/homePage.po");
+    const cleanupHomePage = new originalHomePage(page);
     if (wsId) {
-      await b2bSaasHomePage.deleteWorkspaceByID(wsId);
+      await cleanupHomePage.deleteWorkspaceByID(wsId);
     }
   });
 });
