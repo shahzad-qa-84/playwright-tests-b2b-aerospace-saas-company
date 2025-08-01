@@ -1,18 +1,18 @@
 import { Locator, Page } from "@playwright/test";
+import { BasePage } from "./base.po";
 
-export class importPage {
-  readonly page: Page;
+export class importPage extends BasePage {
   readonly btnUploadProfilePic: Locator;
   readonly txtBxFullName: Locator;
   readonly txtBxRole: Locator;
   readonly txtDepartment: Locator;
 
   constructor(page: Page) {
-    this.page = page;
-    this.btnUploadProfilePic = this.page.locator("label").filter({ hasText: "Upload new photo" });
-    this.txtBxFullName = this.page.locator(".name-email-area label:nth-child(1) input:nth-child(1)");
-    this.txtBxRole = this.page.locator(".user-details-area label:nth-child(1) input");
-    this.txtDepartment = this.page.locator(".user-details-area label:nth-child(2) input");
+    super(page);
+    this.btnUploadProfilePic = this.locator("label").filter({ hasText: "Upload new photo" });
+    this.txtBxFullName = this.locator(".name-email-area label:nth-child(1) input:nth-child(1)");
+    this.txtBxRole = this.locator(".user-details-area label:nth-child(1) input");
+    this.txtDepartment = this.locator(".user-details-area label:nth-child(2) input");
   }
 
   async uncheckDryRun() {

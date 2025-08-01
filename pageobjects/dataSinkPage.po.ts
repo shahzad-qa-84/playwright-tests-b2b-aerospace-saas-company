@@ -1,8 +1,11 @@
 // pageobjects/dataSinkPage.po.ts
 import { Page, expect } from "@playwright/test";
+import { BasePage } from "./base.po";
 
-export class DataSinkPage {
-  constructor(private page: Page) {}
+export class DataSinkPage extends BasePage {
+  constructor(page: Page) {
+    super(page);
+  }
 
   async openDataSinkSection() {
     await this.page.getByText("Data sources").click();

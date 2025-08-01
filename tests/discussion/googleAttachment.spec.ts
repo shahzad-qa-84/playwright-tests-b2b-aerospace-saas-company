@@ -1,40 +1,40 @@
 import { faker } from "@faker-js/faker";
 import { expect, test } from "@playwright/test";
 
-import { homePage } from "../../pageobjects/homePage.po";
+import { HomePage } from "../../pageobjects/homePageRefactored.po";
 
 test.describe("Google attachment link test", () => {
   const workspaceName = "AutomatedTest_" + faker.internet.userName();
   let wsId: string | undefined;
 
   test.beforeEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
-    wsId = await b2bSaasHomePage.openUrlAndCreateTestWorkspace(workspaceName);
+    const homePage = new HomePage(page);
+    wsId = await homePage.openUrlAndCreateTestWorkspace(workspaceName);
   });
 
   test("Verify that Google attachment file works. @smokeTest @featureBranch", async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
+    const homePage = new HomePage(page);
     const fileName = "test presentation";
 
-    await b2bSaasHomePage.clickAttachments();
-    await b2bSaasHomePage.clickAddAttachment();
-    await b2bSaasHomePage.clickGoogleAttachment(fileName);
+    // Navigate to attachments and add Google attachment
+    await homePage.clickAttachments();
+    await homePage.clickAddAttachment();
+    await homePage.clickGoogleAttachment(fileName);
 
-    // Open context menu for attachment
-    await page.getByTestId("button_attachment-context-menu").click();
-    await page.getByTestId("menu-item_details").click();
+    // Open attachment context menu and details
+    await homePage.openAttachmentContextMenuForDetails();
+    await homePage.clickAttachmentDetailsFromMenu();
 
-    // Verify attachment details
-    const attachmentDetails = page.getByLabel(`Attachment details: ${fileName}`);
-    await expect(attachmentDetails.getByText(fileName, { exact: true })).toBeVisible();
-    await expect(page.getByText("Google")).toBeVisible();
-    await expect(page.locator("img").nth(3)).toBeVisible();
+    // Verify Google attachment details
+    await homePage.verifyGoogleAttachmentDetails(fileName);
   });
 
   test.afterEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
+    // Note: Using original homePage for cleanup until deleteWorkspaceByID is added to refactored version
+    const { homePage: originalHomePage } = await import("../../pageobjects/homePage.po");
+    const cleanupHomePage = new originalHomePage(page);
     if (wsId) {
-      await b2bSaasHomePage.deleteWorkspaceByID(wsId);
+      await cleanupHomePage.deleteWorkspaceByID(wsId);
     }
   });
 });

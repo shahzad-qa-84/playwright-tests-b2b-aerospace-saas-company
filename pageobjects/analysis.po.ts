@@ -1,10 +1,9 @@
 import { Page } from "@playwright/test";
+import { BasePage } from "./base.po";
 
-export class analysisPage {
-  readonly page: Page;
-
+export class analysisPage extends BasePage {
   constructor(page: Page) {
-    this.page = page;
+    super(page);
   }
 
   async clickCreateCodeBlock() {

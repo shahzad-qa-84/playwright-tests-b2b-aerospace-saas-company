@@ -1,10 +1,9 @@
 import { Page } from "@playwright/test";
+import { BasePage } from "./base.po";
 
-export class workspacePage {
-  readonly page: Page;
-
+export class workspacePage extends BasePage {
   constructor(page: Page) {
-    this.page = page;
+    super(page);
   }
 
   async importWorkspace(filePath: string) {

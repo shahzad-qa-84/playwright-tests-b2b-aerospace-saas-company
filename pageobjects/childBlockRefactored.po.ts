@@ -35,11 +35,8 @@ export class ChildBlockPage extends BasePage {
    */
   async createChildBlockFromMainBar(childBlockName: string): Promise<void> {
     await this.safeClick(this.childBlockInput);
-    await this.page.waitForTimeout(200);
     await this.safeFill(this.childBlockInput, childBlockName);
-    await this.page.waitForTimeout(200);
     await this.childBlockInput.press("Enter");
-    await this.page.waitForTimeout(200);
   }
 
   /**

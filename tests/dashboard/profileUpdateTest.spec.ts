@@ -1,57 +1,60 @@
 import { faker } from "@faker-js/faker";
 import { expect, test } from "@playwright/test";
 
-import { homePage } from "../../pageobjects/homePage.po";
-import { settingsPage } from "../../pageobjects/settings.po";
+import { HomePage } from "../../pageobjects/homePageRefactored.po";
+import { SettingsPage } from "../../pageobjects/settingsRefactored.po";
 import { getUserEmail } from "../../utilities/urlMapper";
 
 test.describe("Profile Update test", () => {
   const workspaceName = "AutomatedTest_" + faker.internet.userName();
   let wsId: string | undefined;
+  
   test.beforeEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
-    wsId = await b2bSaasHomePage.openUrlAndCreateTestWorkspace(workspaceName);
+    const homePage = new HomePage(page);
+    wsId = await homePage.openUrlAndCreateTestWorkspace(workspaceName);
   });
+  
   test("Verify that Upload Avatar and other Profile updates to user Profile works @featureBranch @smokeTest", async ({ page, baseURL }) => {
-    const b2bSaasHomePage = await new homePage(page);
+    const homePage = new HomePage(page);
+    const settingsPage = new SettingsPage(page);
 
-    // Click inbox and see if its opened correctly
-    await b2bSaasHomePage.clickProfile();
+    // Navigate to profile settings
+    await homePage.clickProfile();
+    await settingsPage.clickSettings();
 
-    // Go to user settings
-    const userSettingsPage = await new settingsPage(page);
-    await userSettingsPage.clickSettings();
+    // Get current avatar source before upload
+    const oldAvatarSrc = await page.getAttribute('img[alt="User avatar"]', "src");
+    const extractedOldUuid = oldAvatarSrc?.split(".amazonaws.com/")[1];
 
-    // Extract the 'src' attribute of the <img> element
-    const imgSrcOldValue = await page.getAttribute('img[alt="User avatar"]', "src");
-    const extractedUuidValue = imgSrcOldValue?.split(".amazonaws.com/")[1];
+    // Upload new profile picture
+    await settingsPage.uploadProfilePic("./resources/b2bSaas-logo.png");
 
-    // Upload avatar, update User name, Role and Department
-    await userSettingsPage.uploadProfilePic("./resources/b2bSaas-logo.png");
-    const imgSrcNewValue = await page.getAttribute('img[alt="User avatar"]', "src");
+    // Get new avatar source and verify it changed
+    const newAvatarSrc = await page.getAttribute('img[alt="User avatar"]', "src");
+    const extractedNewUuid = newAvatarSrc?.split(".amazonaws.com/")[1];
 
-    // Process the URL to get the UUID after '.amazonaws.com/'
-    const extractedNewUuidValue = imgSrcNewValue?.split(".amazonaws.com/")[1];
+    // Verify that avatar changed
+    await expect(extractedNewUuid).not.toEqual(extractedOldUuid);
 
-    // Verify that Avatar Src old and new values are different
-    await expect(extractedNewUuidValue).not.toEqual(extractedUuidValue);
-
+    // Update user profile information
     const userName = getUserEmail(baseURL);
     const role = "b2bSaas testing team's playground org.";
 
-    await userSettingsPage.enterName(userName);
-    await userSettingsPage.enterRole(role);
-    await userSettingsPage.clickSubmit();
+    await settingsPage.enterName(userName);
+    await settingsPage.enterRole(role);
+    await settingsPage.clickSubmit();
 
-    // Verify that Avatar is uploaded and all the provided user information is updaed
-    await expect(await page.getByPlaceholder("" + userName + "")).toBeVisible();
-    await expect(await page.getByPlaceholder("" + role + "")).toBeVisible();
+    // Verify that profile information was updated
+    await expect(page.getByPlaceholder(userName)).toBeVisible();
+    await expect(page.getByPlaceholder(role)).toBeVisible();
   });
 
   test.afterEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
+    // Note: Using original homePage for cleanup until deleteWorkspaceByID is added to refactored version
+    const { homePage: originalHomePage } = await import("../../pageobjects/homePage.po");
+    const cleanupHomePage = new originalHomePage(page);
     if (wsId) {
-      await b2bSaasHomePage.deleteWorkspaceByID(wsId);
+      await cleanupHomePage.deleteWorkspaceByID(wsId);
     }
   });
 });

@@ -1,16 +1,16 @@
 import { Locator, Page } from "@playwright/test";
+import { BasePage } from "./base.po";
 
-export class childPage {
-  readonly page: Page;
+export class childPage extends BasePage {
   readonly txtBxChildBlock: Locator;
   readonly txtBxChildName: Locator;
   readonly txtBxSubChildBlock: Locator;
 
   constructor(page: Page) {
-    this.page = page;
-    this.txtBxChildBlock = page.getByPlaceholder("Add new child block");
-    this.txtBxSubChildBlock = page.getByRole("dialog", { name: "Add new child block" }).getByPlaceholder("Add new child block");
-    this.txtBxChildName = page.getByRole("menu").filter({ hasText: "NameAdd child blockMultiplicityDelete" }).getByRole("textbox");
+    super(page);
+    this.txtBxChildBlock = this.getByPlaceholder("Add new child block");
+    this.txtBxSubChildBlock = this.getByRole("dialog", { name: "Add new child block" }).getByPlaceholder("Add new child block");
+    this.txtBxChildName = this.getByRole("menu").filter({ hasText: "NameAdd child blockMultiplicityDelete" }).getByRole("textbox");
   }
 
   async clickChildBlock() {

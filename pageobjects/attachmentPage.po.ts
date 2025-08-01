@@ -1,11 +1,10 @@
 import { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
+import { BasePage } from "./base.po";
 
-export class attachmentsPage {
-  readonly page: Page;
-
+export class attachmentsPage extends BasePage {
   constructor(page: Page) {
-    this.page = page;
+    super(page);
   }
 
   async clickBtnUploadAttachment() {

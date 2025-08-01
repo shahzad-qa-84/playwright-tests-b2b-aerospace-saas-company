@@ -1,12 +1,12 @@
 import { Locator, Page } from "@playwright/test";
+import { BasePage } from "./base.po";
 
-export class inboxPage {
-  readonly page: Page;
+export class inboxPage extends BasePage {
   readonly txtBxAddNewProperty: Locator;
 
   constructor(page: Page) {
-    this.page = page;
-    this.txtBxAddNewProperty = page.getByPlaceholder("Add new property");
+    super(page);
+    this.txtBxAddNewProperty = this.getByPlaceholder("Add new property");
   }
 
   async clickInboxTab() {

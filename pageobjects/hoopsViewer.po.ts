@@ -1,7 +1,10 @@
 import { Page, expect } from "@playwright/test";
+import { BasePage } from "./base.po";
 
-export class HoopsViewerPage {
-  constructor(private page: Page) {}
+export class HoopsViewerPage extends BasePage {
+  constructor(page: Page) {
+    super(page);
+  }
 
   async openFirstAttachmentFromGrid() {
     await this.page.getByTestId("button_attachment-view-type-switcher_grid").click();

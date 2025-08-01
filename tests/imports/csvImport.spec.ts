@@ -1,7 +1,7 @@
 import { faker } from "@faker-js/faker";
 import { expect, test } from "@playwright/test";
 
-import { homePage } from "../../pageobjects/homePage.po";
+import { HomePage } from "../../pageobjects/homePageRefactored.po";
 import { importPage } from "../../pageobjects/import.po";
 
 test.describe.serial("CSV Import Test with Dry Run and Filtering", () => {
@@ -9,63 +9,63 @@ test.describe.serial("CSV Import Test with Dry Run and Filtering", () => {
   let wsId: string | undefined;
 
   test.beforeEach(async ({ page }) => {
-    // Create a test workspace before each test
-    const b2bSaasHomePage = new homePage(page);
-    wsId = await b2bSaasHomePage.openUrlAndCreateTestWorkspace(workspaceName);
+    const homePage = new HomePage(page);
+    wsId = await homePage.openUrlAndCreateTestWorkspace(workspaceName);
   });
 
   test("CSV import with dry run, confirmation and filtering works as expected. @smokeTest @featureBranch @prod", async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
+    const homePage = new HomePage(page);
     const importsPage = new importPage(page);
 
-    // Navigate to the Imports section
-    await b2bSaasHomePage.clickImports();
+    // Step 1: Navigate to the Imports section
+    await homePage.clickImports();
 
-    // Start the CSV import flow
+    // Step 2: Start the CSV import flow
     await importsPage.clickCreateImport();
-    await importsPage.clickImporttoModelBlocks();
+    await importsPage.clickImportToModelBlocks(); // Fixed method name
     await importsPage.clickNext();
 
-    // Upload the CSV file
+    // Step 3: Upload the CSV file
     await importsPage.uploadImportFile("./resources/importFile.csv");
     await importsPage.clickNext();
 
-    // Select a system from the dropdown
+    // Step 4: Select a system from the dropdown
     await importsPage.selectFirstSystem();
     await importsPage.clickNext();
 
-    // Submit the dry run
+    // Step 5: Submit the dry run
     await importsPage.submitImport();
 
-    // Wait until dry run processing is finished
+    // Step 6: Wait until dry run processing is finished
     await importsPage.waitForDryRunToFinish();
 
-    // Confirm and accept the import
+    // Step 7: Confirm and accept the import
     await importsPage.confirmImport();
 
-    // Filter imports list using correct and incorrect file names
+    // Step 8: Test filtering with incorrect file name
     await importsPage.searchImportFile("abc_random_str");
     await expect(page.getByText("No file names matching search query")).toBeVisible();
 
-    // Clear the incorrect search
+    // Step 9: Clear the incorrect search
     await importsPage.clearSearch();
     await expect(page.getByText("No file names matching search query")).toBeHidden();
 
-    // Search with the correct file name
+    // Step 10: Search with the correct file name
     await importsPage.searchImportFile("importFile.csv");
 
-    // Validate that the import row appears with status "Success"
+    // Step 11: Validate successful import status
     await expect(page.getByText("Success", { exact: true })).toBeVisible();
 
-    // Ensure that the file is listed after successful import
+    // Step 12: Ensure that the file is listed after successful import
     await expect(page.locator("td").first()).toBeVisible();
   });
 
   test.afterEach(async ({ page }) => {
-    // Clean up: delete the test workspace
-    const b2bSaasHomePage = new homePage(page);
+    // Note: Using original homePage for cleanup until deleteWorkspaceByID is added to refactored version
+    const { homePage: originalHomePage } = await import("../../pageobjects/homePage.po");
+    const cleanupHomePage = new originalHomePage(page);
     if (wsId) {
-      await b2bSaasHomePage.deleteWorkspaceByID(wsId);
+      await cleanupHomePage.deleteWorkspaceByID(wsId);
     }
   });
 });

@@ -1,45 +1,50 @@
 import { faker } from "@faker-js/faker";
 import { test } from "@playwright/test";
 
-import { homePage } from "../../pageobjects/homePage.po";
+import { HomePage } from "../../pageobjects/homePageRefactored.po";
 import { workspacePage } from "../../pageobjects/workspace.po";
 
 test.describe("Duplicate Workspace Test", () => {
   let workspaceName: string;
   let wsId: string | undefined;
+  
   test.beforeEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
+    const homePage = new HomePage(page);
     workspaceName = "AutomatedTest_" + faker.internet.userName();
-    wsId = await b2bSaasHomePage.openUrlAndCreateTestWorkspace(workspaceName);
+    wsId = await homePage.openUrlAndCreateTestWorkspace(workspaceName);
   });
 
   test("Verify that Duplicate workspace works perfectly with all nodes copied properly. @featureBranch @smokeTest", async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
+    const homePage = new HomePage(page);
     const workspace = new workspacePage(page);
 
-    // First import a workspace
+    // Import workspace for duplication test
     await workspace.expandWorkspaceDropdown();
     await workspace.importWorkspace("./resources/demo-launch-vehicle.json");
     await page.waitForTimeout(3000);
-    await b2bSaasHomePage.clickInbox();
-    await b2bSaasHomePage.clickModelling();
+    
+    // Navigate to verify import success
+    await homePage.clickInbox();
+    await homePage.clickModelling();
 
-    // Now duplicate the workspace
+    // Duplicate the workspace
     await workspace.expandWorkspaceDropdown();
     await workspace.duplicateWorkspaceDropdown();
     await page.waitForTimeout(3000);
 
-    // Verify that the duplicated workspace is created with all nodes
+    // Verify duplicated workspace structure
     await page.waitForLoadState("domcontentloaded");
     await page.getByRole("heading", { name: "Launch Vehicle (RS-1) System Design" }).locator("span").click();
     await page.getByRole("treegrid").getByText("Vehicle design").click();
     await page.getByRole("heading", { name: "Vehicle design" }).locator("span").click();
     await page.waitForLoadState("domcontentloaded");
 
-    // Verify that all the nodes are present on the Requirements section
+    // Verify requirements section nodes
     await page.waitForTimeout(1000);
     await page.getByTestId("nav-link_menu-pane_requirements").hover();
     await page.getByTestId("nav-link_menu-pane_requirements").click();
+    
+    // Navigate through requirements structure
     await page.getByText("Fracture Drawing markings").click();
     await page.getByRole("link", { name: "QMS Checklist" }).click();
     await page.getByText("ROL-1").click();
@@ -50,34 +55,45 @@ test.describe("Duplicate Workspace Test", () => {
     await page.getByText("Write a requirement").click();
     await page.getByRole("link", { name: "Structure Requirements" }).click();
     await page.getByRole("link", { name: "Launch Vehicle System Requirements" }).click();
+    
+    // Verify specific requirements content
     await page.getByText("The launch vehicle shall be capable of lofting 250 kg to Low-Earth Orbit").click();
     await page.getByText("The vehicle shall be capable of lofting 50 kg to Sun-Synchronous Orbit").click();
     await page.getByText("The launch vehicle shall be").click();
     await page.waitForLoadState("domcontentloaded");
 
-    // Verify that all the nodes are present on the Reports section
+    // Verify reports/knowledgebase section
     await page.waitForTimeout(1000);
     await page.getByTestId("nav-link_menu-pane_knowledgebase").hover();
     await page.getByTestId("nav-link_menu-pane_knowledgebase").click();
     await page.locator("#REPORT_PANE").getByText("Launch Vehicle Payload Users Guide", { exact: true }).click();
     await page.waitForLoadState("domcontentloaded");
 
-    // Delete the duplicated workspace
-    const wsIdCurrentlyOpen = await b2bSaasHomePage.getWorkspaceID();
-    if (wsIdCurrentlyOpen) {
-      await b2bSaasHomePage.deleteWorkspaceByID(wsIdCurrentlyOpen);
+    // Clean up duplicated workspace
+    const currentWorkspaceId = await page.url().split('/workspace/')[1]?.split('/')[0];
+    if (currentWorkspaceId) {
+      // Note: Using original homePage for cleanup methods
+      const { homePage: originalHomePage } = await import("../../pageobjects/homePage.po");
+      const cleanupHomePage = new originalHomePage(page);
+      await cleanupHomePage.deleteWorkspaceByID(currentWorkspaceId);
     }
 
-    // Refresh the page and verify that the workspace is deleted
-    await b2bSaasHomePage.gotoWorkspaces();
+    // Verify workspace deletion and cleanup imported workspace
+    await page.goto('/'); // Navigate to workspaces
     await page.waitForLoadState("domcontentloaded");
-    await b2bSaasHomePage.deleteWsFromSettings("AutomatedTest_Launch Vehicle");
+    
+    // Delete the original imported workspace if it exists
+    const { homePage: originalHomePage } = await import("../../pageobjects/homePage.po");
+    const cleanupHomePage = new originalHomePage(page);
+    await cleanupHomePage.deleteWsFromSettings("AutomatedTest_Launch Vehicle");
   });
 
   test.afterEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
+    // Note: Using original homePage for cleanup until deleteWorkspaceByID is added to refactored version
+    const { homePage: originalHomePage } = await import("../../pageobjects/homePage.po");
+    const cleanupHomePage = new originalHomePage(page);
     if (wsId) {
-      await b2bSaasHomePage.deleteWorkspaceByID(wsId);
+      await cleanupHomePage.deleteWorkspaceByID(wsId);
     }
   });
 });

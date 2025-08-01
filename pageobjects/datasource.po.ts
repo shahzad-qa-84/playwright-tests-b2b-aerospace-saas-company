@@ -1,10 +1,9 @@
 import { Page } from "@playwright/test";
+import { BasePage } from "./base.po";
 
-export class dataSource {
-  readonly page: Page;
-
+export class dataSource extends BasePage {
   constructor(page: Page) {
-    this.page = page;
+    super(page);
   }
 
   async createDataSource(dataSourceName: string) {

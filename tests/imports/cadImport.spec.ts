@@ -1,7 +1,7 @@
 import { faker } from "@faker-js/faker";
 import { expect, test } from "@playwright/test";
 
-import { homePage } from "../../pageobjects/homePage.po";
+import { HomePage } from "../../pageobjects/homePageRefactored.po";
 import { importPage } from "../../pageobjects/import.po";
 
 test.describe.serial("CAD Import", () => {
@@ -9,16 +9,16 @@ test.describe.serial("CAD Import", () => {
   let wsId: string | undefined;
 
   test.beforeEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
-    wsId = await b2bSaasHomePage.openUrlAndCreateTestWorkspace(workspaceName);
+    const homePage = new HomePage(page);
+    wsId = await homePage.openUrlAndCreateTestWorkspace(workspaceName);
   });
 
   test("Verify that CAD Import with Dry Run is working. @smokeTest @featureBranch @prod", async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
+    const homePage = new HomePage(page);
     const importsPage = new importPage(page);
 
     // Step 1: Navigate to the Imports section
-    await b2bSaasHomePage.clickImports();
+    await homePage.clickImports();
 
     // Step 2: Start the import process
     await importsPage.clickCreateImport();
@@ -42,11 +42,11 @@ test.describe.serial("CAD Import", () => {
     await importsPage.confirmImport();
     await importsPage.verifySuccessMessage();
 
-    // Step 8: Navigate to the Modeling section
-    await b2bSaasHomePage.clickModelling();
+    // Step 8: Navigate to the Modeling section and verify imported blocks
+    await homePage.clickModelling();
 
     // Step 9: Verify that the imported blocks are present in the model tree
-    const block = await page.getByRole("treegrid");
+    const block = page.getByRole("treegrid");
     await expect(block.getByText("1. Barrel-1")).toBeVisible();
     await expect(block.getByText("2.Piston Rod-1")).toBeVisible();
     await expect(block.getByText("3.Piston-1")).toBeVisible();
@@ -56,9 +56,11 @@ test.describe.serial("CAD Import", () => {
   });
 
   test.afterEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
+    // Note: Using original homePage for cleanup until deleteWorkspaceByID is added to refactored version
+    const { homePage: originalHomePage } = await import("../../pageobjects/homePage.po");
+    const cleanupHomePage = new originalHomePage(page);
     if (wsId) {
-      await b2bSaasHomePage.deleteWorkspaceByID(wsId);
+      await cleanupHomePage.deleteWorkspaceByID(wsId);
     }
   });
 });

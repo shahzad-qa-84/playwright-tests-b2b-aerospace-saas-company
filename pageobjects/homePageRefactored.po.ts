@@ -650,6 +650,60 @@ export class HomePage extends BasePage {
     await this.verifyInvitationSuccess();
   }
 
+  /**
+   * Click Google attachment option
+   */
+  async clickGoogleAttachment(fileName: string): Promise<void> {
+    await this.safeClick(this.getByText("Google"));
+    await this.safeClick(this.getByText(fileName));
+    await this.safeClick(this.getByTestId("button_add-attachment"));
+  }
+
+  /**
+   * Verify Google attachment details
+   */
+  async verifyGoogleAttachmentDetails(fileName: string): Promise<void> {
+    const attachmentDetails = this.getByLabel(`Attachment details: ${fileName}`);
+    await this.verifyElementVisible(attachmentDetails.getByText(fileName, { exact: true }));
+    await this.verifyElementVisible(this.getByText("Google"));
+    await this.verifyElementVisible(this.locator("img").nth(3));
+  }
+
+  /**
+   * Click Model Configuration
+   */
+  async clickModellConfiguration(): Promise<void> {
+    await this.safeClick(this.getByTestId("nav-link_model-configuration"));
+  }
+
+  /**
+   * Click Statuses from model configuration
+   */
+  async clickStatuses(): Promise<void> {
+    await this.safeClick(this.getByTestId("nav-link_statuses"));
+  }
+
+  /**
+   * Click Properties from Model Configuration
+   */
+  async clickPropertiesFromModellConfiguration(): Promise<void> {
+    await this.safeClick(this.getByTestId("nav-link_properties"));
+  }
+
+  /**
+   * Click Blocks navigation
+   */
+  async clickBlocks(): Promise<void> {
+    await this.safeClick(this.getByTestId("nav-link_menu-pane_modeling"));
+  }
+
+  /**
+   * Click Imports navigation
+   */
+  async clickImports(): Promise<void> {
+    await this.safeClick(this.getByTestId("nav-link_menu-pane_imports"));
+  }
+
   // Header Actions
   async expandModellingMenu(): Promise<void> {
     await this.safeClick(this.menuToggleButton);

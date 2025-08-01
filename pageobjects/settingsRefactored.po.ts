@@ -137,6 +137,22 @@ export class SettingsPage extends BasePage {
   }
 
   /**
+   * Upload profile picture
+   */
+  async uploadProfilePic(picturePath: string): Promise<void> {
+    const profilePicInput = this.getByTestId("input_upload-file-input_upload-avatar");
+    await this.uploadFile(profilePicInput, picturePath);
+    await this.reloadPage();
+  }
+
+  /**
+   * Enter name (alias for enterFullName)
+   */
+  async enterName(fullname: string): Promise<void> {
+    await this.enterFullName(fullname);
+  }
+
+  /**
    * Upload company logo
    */
   async uploadCompanyLogo(logoPath: string): Promise<void> {

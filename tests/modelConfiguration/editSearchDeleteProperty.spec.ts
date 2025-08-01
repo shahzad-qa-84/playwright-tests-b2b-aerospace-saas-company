@@ -1,93 +1,62 @@
 import { faker } from "@faker-js/faker";
 import { expect, test } from "@playwright/test";
 
-import { homePage } from "../../pageobjects/homePage.po";
+import { HomePage } from "../../pageobjects/homePageRefactored.po";
+import { ModelConfigurationPage } from "../../pageobjects/modelConfigurationRefactored.po";
 
 test.describe("Property Definitions test", () => {
   const workspaceName = "AutomatedTest_" + faker.internet.userName();
   let wsId: string | undefined;
+  
   test.beforeEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
-    wsId = await b2bSaasHomePage.openUrlAndCreateTestWorkspace(workspaceName);
+    const homePage = new HomePage(page);
+    wsId = await homePage.openUrlAndCreateTestWorkspace(workspaceName);
   });
-  test("Verify that from Modelling Configuration Add new Property, Edit Property and deletion is working @prod @smokeTest @featureBranch", async ({
-    page,
-  }) => {
-    const b2bSaasHomePage = new homePage(page);
-    await b2bSaasHomePage.clickModelling();
+  
+  test("Verify that from Modelling Configuration Add new Property, Edit Property and deletion is working @prod @smokeTest @featureBranch", async ({ page }) => {
+    const homePage = new HomePage(page);
+    const modelConfigPage = new ModelConfigurationPage(page);
 
-    // Click Model configuration
-    await b2bSaasHomePage.clickModellConfiguration();
+    // Navigate to modelling and model configuration
+    await homePage.clickModelling();
+    await homePage.clickModellConfiguration();
 
-    // Add the property
-    const propertyToBeAdded = faker.person.firstName().toLocaleLowerCase();
+    // Generate property name
+    const propertyToBeAdded = faker.person.firstName().toLowerCase();
 
-    // Click Poperties
-    await page.getByTestId("nav-link_properties").click();
+    // Navigate to properties section
+    await modelConfigPage.clickProperties();
 
-    // Add new property
-    await page.getByTestId("button_add-new-row").click();
-    await page.getByPlaceholder("Add new property").fill(propertyToBeAdded);
-    await page.getByPlaceholder("Add new property").press("Enter");
-    await page.getByTestId("button_type_" + propertyToBeAdded).click();
-    await page.getByTestId("menu-item_type-cel_menu-item_string").click();
-    await page.getByTestId("button_type_" + propertyToBeAdded).click();
+    // Create and configure property with type changes
+    await modelConfigPage.createProperty(propertyToBeAdded, "string");
+    await modelConfigPage.setPropertyType(propertyToBeAdded, "scalar");
 
-    // Type property type as Scalar
-    await page.getByTestId("menu-item_type-cel_menu-item_scalar").click();
-    await page.getByTestId("ag-cell_label_" + propertyToBeAdded).click();
+    // Edit the property name
+    const editedPropertyName = propertyToBeAdded + "_edit";
+    await modelConfigPage.editPropertyName(propertyToBeAdded, editedPropertyName);
 
-    // Edit the type of the property
-    await page
-      .getByRole("row", { name: propertyToBeAdded + " scalar" })
-      .getByRole("textbox")
-      .fill(propertyToBeAdded + "_edit");
-    await page
-      .getByRole("gridcell", { name: propertyToBeAdded + "_edit" })
-      .locator("div")
-      .nth(1)
-      .click();
-    await page
-      .getByRole("row", { name: propertyToBeAdded + "_edit scalar" })
-      .getByRole("textbox")
-      .click();
+    // Search for the edited property
+    await modelConfigPage.searchProperty(editedPropertyName);
+    await modelConfigPage.openActionsMenu();
 
-    // Search for the property and delete it
-    const txtBxSearch = await page.getByPlaceholder("Search for Definitions");
-    await txtBxSearch.click();
-    await txtBxSearch.fill(propertyToBeAdded + "_edit");
-    await txtBxSearch.press("Enter");
+    // Verify property is displayed in Properties section
+    await homePage.clickBlocks();
+    await modelConfigPage.verifyPropertyInBlocksSection(editedPropertyName);
 
-    // Expand the menu
-    const menu = await page.getByTestId("button_actions-cell_drag");
-    await menu.click();
-
-    // Verify if property is displayed in Properties section
-    await b2bSaasHomePage.clickBlocks();
-    await page.locator("#bp5-tab-title_block-view-tabs_properties").getByText("Properties").click();
-    await page.getByText("property", { exact: true }).click();
-    await page.getByPlaceholder("Add new property").click();
-    await page.getByTestId("menu-item_" + propertyToBeAdded + "_edit").click();
-
-    // Locate the property element by its attributes
-    const inputElement = page.locator('input.bp5-input[placeholder="Name"]');
-
-    // Assert the value of the input element
-    await expect(inputElement).toHaveValue(propertyToBeAdded + "_edit");
-
-    // Delete the property
-    b2bSaasHomePage.clickPropertiesFromModellConfiguration();
-    await page.getByTestId("button_actions-cell_drag").click();
-    await page.getByTestId("menu-item_delete").click();
+    // Delete the property from model configuration
+    await homePage.clickPropertiesFromModellConfiguration();
+    await modelConfigPage.deleteProperty();
 
     // Verify that the property is deleted
-    await expect(page.getByText("No Rows To Show")).toBeVisible();
+    await modelConfigPage.verifyNoRowsToShow();
   });
 
   test.afterEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
+    // Note: Using original homePage for cleanup until deleteWorkspaceByID is added to refactored version
+    const { homePage: originalHomePage } = await import("../../pageobjects/homePage.po");
+    const cleanupHomePage = new originalHomePage(page);
     if (wsId) {
-      await b2bSaasHomePage.deleteWorkspaceByID(wsId);
+      await cleanupHomePage.deleteWorkspaceByID(wsId);
     }
   });
 });

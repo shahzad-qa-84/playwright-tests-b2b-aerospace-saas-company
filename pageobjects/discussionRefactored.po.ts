@@ -244,4 +244,124 @@ export class DiscussionPage extends BasePage {
   async clickInsertedLink(linkText: string): Promise<void> {
     await this.safeClick(this.getByRole("link", { name: linkText }));
   }
+
+  /**
+   * Open discussion tab
+   */
+  async openDiscussionTab(): Promise<void> {
+    await this.safeClick(this.getByText("Discussion"));
+  }
+
+  /**
+   * Expect no comments message
+   */
+  async expectNoCommentsMessage(): Promise<void> {
+    await this.verifyElementVisible(this.getByText("No comments yet"));
+  }
+
+  /**
+   * Add comment with text
+   */
+  async addComment(commentText: string): Promise<void> {
+    const commentEditor = this.locator(".ProseMirror").first();
+    await this.safeClick(commentEditor);
+    await commentEditor.type(commentText);
+    await this.sendComment();
+  }
+
+  /**
+   * Tag user in comment
+   */
+  async tagUser(username?: string): Promise<void> {
+    const commentEditor = this.locator(".ProseMirror").first();
+    await this.safeClick(commentEditor);
+    await commentEditor.type("@");
+    if (username) {
+      await commentEditor.type(username);
+    }
+    // Note: Enter not pressed to avoid sending email
+  }
+
+  /**
+   * Edit comment
+   */
+  async editComment(originalText: string, updatedText: string): Promise<void> {
+    // Click on comment to edit
+    await this.safeClick(this.getByText(originalText));
+    await this.safeClick(this.getByTestId("button_edit-comment"));
+    
+    const commentEditor = this.locator(".ProseMirror").first();
+    await this.safeClick(commentEditor);
+    await commentEditor.press("Meta+a");
+    await commentEditor.type(updatedText);
+    await this.sendComment();
+  }
+
+  /**
+   * Delete comment
+   */
+  async deleteComment(): Promise<void> {
+    await this.safeClick(this.getByTestId("button_comment-menu"));
+    await this.safeClick(this.getByTestId("menu-item_delete"));
+    await this.safeClick(this.getByRole("button", { name: "Delete" }));
+  }
+
+  /**
+   * Upload attachment to comment
+   */
+  async uploadAttachment(filePath: string): Promise<void> {
+    await this.safeClick(this.getByTestId("button_comment-editor-action_attachment"));
+    const fileInput = this.locator('input[type="file"]').first();
+    await this.uploadFile(fileInput, filePath);
+  }
+
+  /**
+   * Submit comment with text
+   */
+  async submitComment(commentText: string): Promise<void> {
+    const commentEditor = this.locator(".ProseMirror").first();
+    await this.safeClick(commentEditor);
+    await commentEditor.type(commentText);
+    await this.sendComment();
+  }
+
+  /**
+   * Open attachments tab
+   */
+  async openAttachmentsTab(): Promise<void> {
+    await this.safeClick(this.getByRole("tab", { name: "Attachments" }));
+  }
+
+  /**
+   * Verify attachment is visible
+   */
+  async verifyAttachmentVisible(fileName: string): Promise<void> {
+    await this.verifyElementVisible(this.getByText(fileName));
+  }
+
+  /**
+   * Open attachment details
+   */
+  async openAttachmentDetails(fileName: string): Promise<void> {
+    await this.safeClick(this.getByText(fileName));
+    await this.safeClick(this.getByTestId("button_attachment-details"));
+  }
+
+  /**
+   * Rename attachment
+   */
+  async renameAttachment(newName: string): Promise<void> {
+    await this.safeClick(this.getByTestId("button_rename-attachment"));
+    const nameInput = this.getByTestId("input_attachment-name");
+    await this.safeFill(nameInput, newName);
+    await this.safeClick(this.getByTestId("button_save-attachment-name"));
+  }
+
+  /**
+   * Delete attachment
+   */
+  async deleteAttachment(): Promise<void> {
+    await this.safeClick(this.getByTestId("button_delete-attachment"));
+    await this.safeClick(this.getByRole("button", { name: "Delete" }));
+  }
 }

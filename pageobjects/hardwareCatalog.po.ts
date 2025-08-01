@@ -1,12 +1,12 @@
 import { Locator, Page } from "@playwright/test";
+import { BasePage } from "./base.po";
 
-export class hardwareCatalogPage {
-  readonly page: Page;
+export class hardwareCatalogPage extends BasePage {
   readonly txtBxFullName: Locator;
 
   constructor(page: Page) {
-    this.page = page;
-    this.txtBxFullName = this.page.locator(".name-email-area label:nth-child(1) input:nth-child(1)");
+    super(page);
+    this.txtBxFullName = this.locator(".name-email-area label:nth-child(1) input:nth-child(1)");
   }
 
   async enterPartname(partName: string) {
