@@ -1,97 +1,73 @@
 import { faker } from "@faker-js/faker";
 import { expect, test } from "@playwright/test";
 
-import { homePage } from "../../pageobjects/homePage.po";
+import { HomePage } from "../../pageobjects/homePageRefactored.po";
+import { ProjectManagementPage } from "../../pageobjects/projectManagement.po";
 
 test.describe("Project Management section test", () => {
   const workspaceName = "AutomatedTest_" + faker.internet.userName();
   let wsId: string | undefined;
   test.beforeEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
-    wsId = await b2bSaasHomePage.openUrlAndCreateTestWorkspace(workspaceName, "engineering");
+    const homePage = new HomePage(page);
+    wsId = await homePage.openUrlAndCreateEngineeringWorkspace(workspaceName);
   });
   test("Verify that Project management various status functionality works successfully. @prod @smokeTest @featureBranch", async ({
     page,
   }) => {
+    const projectManagementPage = new ProjectManagementPage(page);
+    
     // Verify all Project statuses are displayed
-    await expect(await page.getByText("Status", { exact: true })).toBeVisible();
-    await expect(await page.getByText("Responsible Engineer")).toBeVisible();
-    await expect(await page.getByText("Delvery Date")).toBeVisible();
-    await expect(await page.getByText("Inventory Count")).toBeVisible();
-    await expect(await page.locator("span").filter({ hasText: "Right-click to insert..." }).first()).toBeVisible();
-    await expect(await page.getByText("Empty")).toBeVisible();
-    await expect(await page.getByPlaceholder("MM/DD/YYYY").nth(1)).toBeVisible();
+    await projectManagementPage.verifyProjectManagementHeaders();
 
     // Verify that clicking "Add new project status" adds new status
-    const optionAddNewStatus = await page.getByPlaceholder("Add new status");
-    await page.getByText("Add new status").click();
-    await optionAddNewStatus.fill("Done");
-    await optionAddNewStatus.press("Enter");
-    await page.getByTestId("side-panel_sliding-panel").isVisible();
-    await expect(await page.getByText("Done")).toBeVisible();
-    await expect(await page.getByText("DoneEmpty")).toBeVisible();
+    await projectManagementPage.addNewStatus("Done");
+    await projectManagementPage.verifyStatusAdded("Done");
 
-    // Add new descriptiom and verify that description is added
-    const optionAddDescription = await page.getByText("Add description...");
-    await optionAddDescription.click();
-    const txtBxDescription = page.getByPlaceholder("Add description...");
-    await txtBxDescription.fill("description -1");
-    await txtBxDescription.press("Enter");
-    await expect(await page.getByText("description -1")).toBeVisible();
+    // Add new description and verify that description is added
+    await projectManagementPage.addDescription("description -1");
+    await projectManagementPage.verifyDescriptionAdded("description -1");
 
-    // Change sub-options of status and verify that status is changed appropraitely
-    const optionStatus = await page.locator('.status-item-grid > .flex > div > [class*="-popover-target"] > [class*="-button"]').first();
-    await optionStatus.click();
+    // Change sub-options of status and verify that status is changed appropriately
+    await projectManagementPage.selectStatusItem();
 
     // Change status to 'Text' and verify that text box is displayed
-    await page.getByRole("menuitem", { name: "Text" }).click();
-    await page.getByText("Empty").first().click();
-    await page.locator("textarea").fill("Added Text-description");
-    await page.locator("textarea").press("Enter");
-    await expect(await page.getByText("Added Text-description")).toBeVisible();
+    await projectManagementPage.addTextValue("Added Text-description");
+    await projectManagementPage.verifyTextValueAdded("Added Text-description");
 
     // Change status to 'Numeric' and verify that numeric value is changed
-    await optionStatus.click();
-    await page.getByRole("menuitem", { name: "Numeric" }).click();
-    await page.getByText("Empty").first().click();
-    await page.getByRole("spinbutton").fill("89");
-    await page.getByRole("spinbutton").press("Enter");
-    await expect(await page.getByText("89", { exact: true })).toBeVisible();
+    await projectManagementPage.selectStatusItem();
+    await projectManagementPage.addNumericValue("89");
+    await projectManagementPage.verifyNumericValueAdded("89");
 
     // Change status to 'Check' and verify that check box is displayed
-    await optionStatus.click();
-    await page.getByRole("menuitem", { name: "Check" }).click();
-    await expect(await page.locator(".component--status-type-check-editor")).toBeVisible();
+    await projectManagementPage.selectStatusItem();
+    await projectManagementPage.addCheckField();
 
-    // Change status to 'Date' and verify that date is set to Todays date, works with Clear values and Delete status
-    await optionStatus.click();
-    const txtBxDate = await page.getByPlaceholder("MM/DD/YYYY").first();
-    await page.getByRole("menuitem", { name: "Date" }).click();
-    await txtBxDate.click();
-    await page.getByRole("button", { name: "Today" }).click();
+    // Change status to 'Date' and verify that date is set to Today's date
+    await projectManagementPage.selectStatusItem();
+    await projectManagementPage.addDateValue();
 
     // Clear value and verify that date is cleared
-    await optionStatus.click();
-    await page.getByRole("menuitem", { name: "Clear Value" }).click();
-    await expect(await txtBxDate.first()).toBeVisible();
+    await projectManagementPage.selectStatusItem();
+    await projectManagementPage.clearValue();
 
     // Change status to 'Single Select' and verify that single select is displayed
-    await optionStatus.click();
-    await page.getByRole("menuitem", { name: "Single Select" }).click();
-    await page.getByPlaceholder("Empty").first().click();
-    await page.getByTestId("menu-item_in-progress").click();
-    await expect(await page.getByText("In-progress").first()).toBeVisible();
+    await projectManagementPage.selectStatusItem();
+    await projectManagementPage.addSingleSelectValue("in-progress");
+    await projectManagementPage.verifySingleSelectValueAdded("In-progress");
 
     // Change status to 'Mention' and verify that members details is displayed
-    await optionStatus.click();
-    await page.getByRole("menuitem", { name: "Mention" }).click();
-    await page.getByPlaceholder("Empty").first().click();
+    await projectManagementPage.selectStatusItem();
+    await projectManagementPage.addMentionValue();
   });
 
   test.afterEach(async ({ page }) => {
-    const b2bSaasHomePage = new homePage(page);
+    // Note: deleteWorkspaceByID method needs to be added to the refactored HomePage
+    // For now, we'll use the original homePage for cleanup
+    const { homePage: originalHomePage } = await import("../../pageobjects/homePage.po");
+    const cleanupHomePage = new originalHomePage(page);
     if (wsId) {
-      await b2bSaasHomePage.deleteWorkspaceByID(wsId);
+      await cleanupHomePage.deleteWorkspaceByID(wsId);
     }
   });
 });
